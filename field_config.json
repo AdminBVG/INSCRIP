@@ -1,0 +1,16 @@
+{
+  "emisores": [
+    {
+      "name": "nombre",
+      "label": "Nombre completo",
+      "type": "text",
+      "required": true
+    },
+    {
+      "name": "email",
+      "label": "Correo electrónico",
+      "type": "email",
+      "required": true
+    }
+  ]
+}
