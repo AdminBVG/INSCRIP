@@ -18,10 +18,13 @@ def get_access_token():
     response = requests.post(url, data=data)
     return response.json()['access_token']
 
-def send_mail(nombre, categoria, file_links):
+def send_mail(nombre, categoria, fields, file_links):
     token = get_access_token()
     subject = f"Inscripción recibida: {nombre} - {categoria}"
-    body = f"<p>Se ha recibido una inscripción:</p><ul>"
+    body = "<p>Se ha recibido una inscripción con los siguientes datos:</p><ul>"
+    for label, value in fields.items():
+        body += f"<li><strong>{label}:</strong> {value}</li>"
+    body += "</ul><p>Archivos:</p><ul>"
     for link in file_links:
         body += f"<li><a href='{link}'>{link}</a></li>"
     body += "</ul>"
