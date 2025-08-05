@@ -1,0 +1,18 @@
+{% extends 'base.html' %}
+{% block title %}Admin Menú{% endblock %}
+{% block content %}
+  <h1>Gestión de Categorías</h1>
+  <form method="post">
+    <label>Clave:</label> <input name="key" required><br>
+    <label>Nombre:</label> <input name="name" required><br>
+    <label>Padre (vacío si es raíz):</label> <input name="parent"><br>
+    <button type="submit">Agregar</button>
+  </form>
+
+  <h2>Categorías existentes</h2>
+  <ul>
+    {% for item in menu %}
+      <li>{{ item.name }} (clave: {{ item.key }}, padre: {{ item.parent }})</li>
+    {% endfor %}
+  </ul>
+{% endblock %}

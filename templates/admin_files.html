@@ -1,0 +1,17 @@
+{% extends 'base.html' %}
+{% block title %}Admin Archivos{% endblock %}
+{% block content %}
+  <h1>Gestión de Archivos por Categoría</h1>
+  <form method="post">
+    <label>Categoría:</label>
+    <select name="category">
+      {% for item in menu %}
+        <option value="{{ item.key }}">{{ item.name }}</option>
+      {% endfor %}
+    </select><br>
+
+    <label>Etiquetas de archivo (separadas por coma):</label><br>
+    <input name="labels" placeholder="Ej: RUC, Cédula, Contrato"><br>
+    <button type="submit">Guardar</button>
+  </form>
+{% endblock %}

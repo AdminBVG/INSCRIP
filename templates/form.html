@@ -1,0 +1,16 @@
+{% extends 'base.html' %}
+{% block title %}Formulario de {{ category_name }}{% endblock %}
+{% block content %}
+  <h1>Formulario - {{ category_name }}</h1>
+  <form method="post" enctype="multipart/form-data">
+    <label>Nombre completo:</label>
+    <input type="text" name="nombre" required><br><br>
+
+    {% for label in labels %}
+      <label>{{ label }}:</label>
+      <input type="file" name="files"><br><br>
+    {% endfor %}
+
+    <button type="submit">Enviar</button>
+  </form>
+{% endblock %}

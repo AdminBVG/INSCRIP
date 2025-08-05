@@ -1,0 +1,11 @@
+{% extends 'base.html' %}
+{% block title %}Inicio{% endblock %}
+{% block content %}
+  <h1>Inscripciones</h1>
+  <p>Seleccione una categoría:</p>
+  <ul>
+    {% for item in menu %}
+      <li><a href="{{ url_for('inscripcion', key=item.key) }}">{{ item.name }}</a></li>
+    {% endfor %}
+  </ul>
+{% endblock %}
