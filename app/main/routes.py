@@ -2,7 +2,7 @@ import os
 from flask import Blueprint, render_template, request, redirect, url_for, flash, current_app
 from werkzeug.utils import secure_filename
 
-from ..utils import load_menu, load_file_labels, load_text_fields
+from ..utils import load_menu, load_file_labels, load_text_fields, is_setup_complete
 from services.onedrive import upload_files
 from services.mail import send_mail
 
@@ -11,6 +11,9 @@ main_bp = Blueprint('main', __name__)
 
 @main_bp.route('/')
 def index():
+    if not is_setup_complete():
+        flash('Debe completar la configuración antes de continuar')
+        return redirect(url_for('admin.settings'))
     menu = load_menu()
     roots = [i for i in menu if i['parent'] == '']
     return render_template('index.html', menu=roots)
@@ -18,6 +21,9 @@ def index():
 
 @main_bp.route('/inscripcion/<key>', methods=['GET', 'POST'])
 def inscripcion(key):
+    if not is_setup_complete():
+        flash('Debe completar la configuración antes de continuar')
+        return redirect(url_for('admin.settings'))
     menu = load_menu()
     cat = next((i for i in menu if i['key'] == key), None)
     if not cat:
@@ -56,8 +62,8 @@ def inscripcion(key):
                 return redirect(request.url)
 
         try:
-            folder_path, file_links = upload_files(nombre, key, files)
-            send_mail(nombre, key, form_values, file_links)
+            folder_path, file_links = upload_files(nombre, key, cat.get('base_path', 'Inscripciones'), files)
+            send_mail(nombre, cat['name'], form_values, file_links)
             flash('Enviado correctamente')
         except Exception as e:
             flash(f'Error: {str(e)}')

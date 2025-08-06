@@ -15,12 +15,16 @@
     <label class="block mb-1">Padre (vacío si es raíz)</label>
     <input name="parent" class="border rounded w-full p-2">
   </div>
+  <div>
+    <label class="block mb-1">Ruta base OneDrive</label>
+    <input name="base_path" class="border rounded w-full p-2">
+  </div>
   <button type="submit" class="bg-blue-600 text-white px-4 py-2 rounded">Agregar</button>
 </form>
 <h2 class="text-xl font-semibold mt-8 mb-2">Categorías existentes</h2>
 <ul class="list-disc pl-5">
   {% for item in menu %}
-    <li>{{ item.name }} (clave: {{ item.key }}, padre: {{ item.parent }})</li>
+    <li>{{ item.name }} (clave: {{ item.key }}, padre: {{ item.parent }}, ruta: {{ item.base_path }})</li>
   {% endfor %}
 </ul>
 {% endblock %}
