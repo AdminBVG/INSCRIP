@@ -1,8 +1,16 @@
 import os
 import csv
+import json
 from flask import Blueprint, render_template, request, redirect, url_for, flash
 
-from ..utils import load_menu, FILE_CONFIG, MENU_CONFIG
+from ..utils import (
+    load_menu,
+    load_settings,
+    save_settings,
+    FILE_CONFIG,
+    MENU_CONFIG,
+    FIELD_CONFIG,
+)
 
 admin_bp = Blueprint('admin', __name__)
 
@@ -13,8 +21,9 @@ def menu():
         key = request.form['key']
         name = request.form['name']
         parent = request.form['parent']
+        base_path = request.form.get('base_path', '')
         with open(MENU_CONFIG, 'a', newline='', encoding='utf-8') as f:
-            csv.writer(f).writerow([key, name, parent])
+            csv.writer(f).writerow([key, name, parent, base_path])
         flash('Menú actualizado')
         return redirect(url_for('admin.menu'))
     return render_template('admin_menu.html', menu=menu)
@@ -42,3 +51,74 @@ def files():
         flash('Archivos actualizados')
         return redirect(url_for('admin.files'))
     return render_template('admin_files.html', menu=menu, labels=labels)
+
+
+@admin_bp.route('/fields', methods=['GET', 'POST'])
+def fields():
+    menu = load_menu()
+    fields_data = []
+    if request.method == 'POST':
+        cat = request.form['category']
+        try:
+            fields_data = json.loads(request.form['fields'] or '[]')
+        except json.JSONDecodeError:
+            flash('Formato de campos inválido')
+            return redirect(request.url)
+        data = {}
+        if os.path.exists(FIELD_CONFIG):
+            with open(FIELD_CONFIG, encoding='utf-8') as f:
+                data = json.load(f)
+        data[cat] = fields_data
+        with open(FIELD_CONFIG, 'w', encoding='utf-8') as f:
+            json.dump(data, f, ensure_ascii=False, indent=2)
+        flash('Campos actualizados')
+        return redirect(url_for('admin.fields'))
+    return render_template('admin_fields.html', menu=menu, fields=fields_data)
+
+
+@admin_bp.route('/settings', methods=['GET', 'POST'])
+def settings():
+    cfg = load_settings()
+    if request.method == 'POST':
+        action = request.form.get('action')
+        if action == 'save_mail':
+            cfg['mail']['email'] = request.form.get('mail_email', '')
+            cfg['mail']['password'] = request.form.get('mail_password', '')
+            cfg['mail']['tested'] = False
+            save_settings(cfg)
+            flash('Correo guardado')
+        elif action == 'test_mail':
+            try:
+                from services.mail import test_connection as mail_test
+
+                mail_test(cfg['mail']['email'], cfg['mail']['password'])
+                cfg['mail']['tested'] = True
+                save_settings(cfg)
+                flash('Correo verificado')
+            except Exception as e:
+                flash(f'Error: {e}')
+        elif action == 'save_onedrive':
+            cfg['onedrive']['client_id'] = request.form.get('client_id', '')
+            cfg['onedrive']['client_secret'] = request.form.get('client_secret', '')
+            cfg['onedrive']['tenant_id'] = request.form.get('tenant_id', '')
+            cfg['onedrive']['user_id'] = request.form.get('user_id', '')
+            cfg['onedrive']['redirect_uri'] = request.form.get('redirect_uri', '')
+            cfg['onedrive']['tested'] = False
+            save_settings(cfg)
+            flash('Credenciales de OneDrive guardadas')
+        elif action == 'test_onedrive':
+            try:
+                from services.onedrive import test_connection as drive_test
+
+                drive_test(
+                    cfg['onedrive']['client_id'],
+                    cfg['onedrive']['tenant_id'],
+                    cfg['onedrive']['client_secret'],
+                )
+                cfg['onedrive']['tested'] = True
+                save_settings(cfg)
+                flash('Conexión OneDrive verificada')
+            except Exception as e:
+                flash(f'Error: {e}')
+        return redirect(url_for('admin.settings'))
+    return render_template('admin_settings.html', settings=cfg)

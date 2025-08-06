@@ -1,0 +1,20 @@
+{% extends 'base.html' %}
+{% block title %}Admin Campos{% endblock %}
+{% block content %}
+<h1 class="text-2xl font-bold mb-4">Campos de texto por Categoría</h1>
+<form method="post" class="space-y-4">
+  <div>
+    <label class="block mb-1">Categoría</label>
+    <select name="category" class="border rounded w-full p-2">
+      {% for item in menu %}
+        <option value="{{ item.key }}">{{ item.name }}</option>
+      {% endfor %}
+    </select>
+  </div>
+  <div>
+    <label class="block mb-1">Campos (JSON)</label>
+    <textarea name="fields" rows="6" class="border rounded w-full p-2">{{ fields|tojson(indent=2) }}</textarea>
+  </div>
+  <button type="submit" class="bg-blue-600 text-white px-4 py-2 rounded">Guardar</button>
+</form>
+{% endblock %}
