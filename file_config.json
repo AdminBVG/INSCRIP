@@ -1,0 +1,10 @@
+{
+  "emisores": [
+    {
+      "name": "archivo1",
+      "label": "Archivo 1",
+      "description": "",
+      "required": true
+    }
+  ]
+}

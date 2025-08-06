@@ -4,7 +4,7 @@ from werkzeug.utils import secure_filename
 
 from ..utils import (
     load_menu,
-    load_file_labels,
+    load_file_fields,
     load_text_fields,
     is_setup_complete,
     save_submission,
@@ -36,7 +36,7 @@ def inscripcion(key):
         flash('Categoría no encontrada')
         return redirect(url_for('main.index'))
 
-    labels = load_file_labels(key)
+    files_cfg = load_file_fields(key)
     fields = load_text_fields(key)
 
     if request.method == 'POST':
@@ -54,22 +54,28 @@ def inscripcion(key):
             flash('Debe incluir el campo nombre')
             return redirect(request.url)
 
-        files = request.files.getlist('files')
-        if not files or all(f.filename == '' for f in files):
+        uploaded_files = []
+        allowed_exts = current_app.config['UPLOAD_EXTENSIONS']
+        for fcfg in files_cfg:
+            f = request.files.get(fcfg['name'])
+            if fcfg.get('required') and (not f or f.filename == ''):
+                flash(f"El archivo {fcfg['label']} es obligatorio")
+                return redirect(request.url)
+            if f and f.filename != '':
+                filename = secure_filename(f.filename)
+                ext = os.path.splitext(filename)[1].lower()
+                if ext not in allowed_exts:
+                    flash(f'Archivo no permitido: {filename}')
+                    return redirect(request.url)
+                uploaded_files.append(f)
+
+        if not uploaded_files:
             flash('Debe subir al menos un archivo')
             return redirect(request.url)
 
-        allowed_exts = current_app.config['UPLOAD_EXTENSIONS']
-        for f in files:
-            filename = secure_filename(f.filename)
-            ext = os.path.splitext(filename)[1].lower()
-            if ext not in allowed_exts:
-                flash(f'Archivo no permitido: {filename}')
-                return redirect(request.url)
-
         try:
             folder_path, file_links = upload_files(
-                nombre, key, cat.get('base_path', 'Inscripciones'), files
+                nombre, key, cat.get('base_path', 'Inscripciones'), uploaded_files
             )
             save_submission(key, form_values, file_links)
             send_mail(nombre, cat['name'], form_values, file_links)
@@ -78,4 +84,4 @@ def inscripcion(key):
             flash(f'Error: {str(e)}')
         return redirect(url_for('main.index'))
 
-    return render_template('form.html', category_name=cat['name'], labels=labels, fields=fields)
+    return render_template('form.html', category_name=cat['name'], files=files_cfg, fields=fields)
