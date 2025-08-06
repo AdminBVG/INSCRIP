@@ -1,16 +1,65 @@
 {% extends 'base.html' %}
 {% block title %}Formulario de {{ category_name }}{% endblock %}
 {% block content %}
-  <h1>Formulario - {{ category_name }}</h1>
-  <form method="post" enctype="multipart/form-data">
-    <label>Nombre completo:</label>
-    <input type="text" name="nombre" required><br><br>
+<h1 class="text-2xl font-bold mb-4">Formulario - {{ category_name }}</h1>
+<form id="inscripcionForm" method="post" enctype="multipart/form-data" class="space-y-4">
+  {% for field in fields %}
+    <div>
+      <label class="block mb-1">{{ field.label }}{% if field.required %} *{% endif %}</label>
+      <input type="{{ field.type }}" name="{{ field.name }}" {% if field.required %}required{% endif %} class="w-full border rounded p-2">
+    </div>
+  {% endfor %}
 
-    {% for label in labels %}
-      <label>{{ label }}:</label>
-      <input type="file" name="files"><br><br>
-    {% endfor %}
+  {% for label in labels %}
+    <div>
+      <label class="block mb-1">{{ label }}</label>
+      <input type="file" name="files" class="w-full border rounded" accept="{{ current_app.config['UPLOAD_EXTENSIONS']|join(',') }}">
+    </div>
+  {% endfor %}
 
-    <button type="submit">Enviar</button>
-  </form>
+  <div id="filePreview" class="text-sm text-gray-500"></div>
+  <div class="w-full bg-gray-200 rounded h-2">
+    <div id="progressBar" class="bg-blue-500 h-2 w-0"></div>
+  </div>
+
+  <button type="submit" class="bg-blue-600 text-white px-4 py-2 rounded">Enviar</button>
+</form>
+<script>
+const fileInputs = document.querySelectorAll('input[type="file"]');
+fileInputs.forEach(input => {
+  input.addEventListener('change', () => {
+    const preview = document.getElementById('filePreview');
+    preview.innerHTML = '';
+    fileInputs.forEach(f => {
+      Array.from(f.files).forEach(file => {
+        const div = document.createElement('div');
+        div.textContent = file.name;
+        preview.appendChild(div);
+      });
+    });
+  });
+});
+
+const form = document.getElementById('inscripcionForm');
+form.addEventListener('submit', function(e) {
+  e.preventDefault();
+  const xhr = new XMLHttpRequest();
+  xhr.open('POST', form.action);
+  xhr.upload.addEventListener('progress', e => {
+    if (e.lengthComputable) {
+      const percent = (e.loaded / e.total) * 100;
+      document.getElementById('progressBar').style.width = percent + '%';
+    }
+  });
+  xhr.onload = () => {
+    if (xhr.status === 200) {
+      window.location = '{{ url_for("main.index") }}';
+    } else {
+      alert('Error al enviar');
+    }
+  };
+  const formData = new FormData(form);
+  xhr.send(formData);
+});
+</script>
 {% endblock %}
