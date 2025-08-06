@@ -1,11 +1,13 @@
 # services/mail.py
-import requests, os
+import os
+import requests
 
 CLIENT_ID = os.getenv('CLIENT_ID')
 TENANT_ID = os.getenv('TENANT_ID')
 CLIENT_SECRET = os.getenv('CLIENT_SECRET')
 USER_ID = os.getenv('USER_ID')
 RECIPIENT = os.getenv('RECIPIENT_EMAIL', USER_ID)
+
 
 def get_access_token():
     url = f"https://login.microsoftonline.com/{TENANT_ID}/oauth2/v2.0/token"
@@ -16,7 +18,10 @@ def get_access_token():
         'grant_type': 'client_credentials'
     }
     response = requests.post(url, data=data)
+    if response.status_code >= 400:
+        raise Exception(f"Error obteniendo token: {response.text}")
     return response.json()['access_token']
+
 
 def send_mail(nombre, categoria, fields, file_links):
     token = get_access_token()
@@ -47,3 +52,4 @@ def send_mail(nombre, categoria, fields, file_links):
     r = requests.post(url, headers=headers, json=message)
     if r.status_code >= 300:
         raise Exception(f"Error enviando correo: {r.text}")
+
