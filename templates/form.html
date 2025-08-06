@@ -10,10 +10,13 @@
     </div>
   {% endfor %}
 
-  {% for label in labels %}
+  {% for f in files %}
     <div>
-      <label class="block mb-1">{{ label }}</label>
-      <input type="file" name="files" class="w-full border rounded" accept="{{ config['UPLOAD_EXTENSIONS']|join(',') }}">
+      <label class="block mb-1">{{ f.label }}{% if f.required %} *{% endif %}</label>
+      {% if f.description %}
+        <p class="text-sm text-gray-600">{{ f.description }}</p>
+      {% endif %}
+      <input type="file" name="{{ f.name }}" {% if f.required %}required{% endif %} class="w-full border rounded" accept="{{ config['UPLOAD_EXTENSIONS']|join(',') }}">
     </div>
   {% endfor %}
 

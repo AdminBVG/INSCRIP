@@ -4,13 +4,17 @@
     "mail_password": "",
     "smtp_host": "smtp.office365.com",
     "smtp_port": 587,
-    "tested": false
+    "tested": false,
+    "updated_at": "",
+    "tested_at": ""
   },
   "onedrive": {
     "client_id": "",
     "client_secret": "",
     "tenant_id": "",
     "user_id": "",
-    "tested": false
+    "tested": false,
+    "updated_at": "",
+    "tested_at": ""
   }
 }

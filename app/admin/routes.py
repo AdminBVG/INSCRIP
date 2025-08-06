@@ -1,5 +1,5 @@
-import os
 import csv
+from datetime import datetime
 from flask import Blueprint, render_template, request, redirect, url_for, flash
 
 from ..utils import (
@@ -8,8 +8,9 @@ from ..utils import (
     save_settings,
     load_text_fields,
     save_text_fields,
+    load_file_fields,
+    save_file_fields,
     load_submissions,
-    FILE_CONFIG,
     MENU_CONFIG,
 )
 
@@ -39,26 +40,43 @@ def menu():
 @admin_bp.route('/files', methods=['GET', 'POST'])
 def files():
     menu = load_menu()
-    labels = []
+    cat = request.values.get('category', '')
+    files_data = load_file_fields(cat) if cat else []
     if request.method == 'POST':
-        cat = request.form['category']
-        labels = request.form['labels'].split(',')
-        rows = []
-        if os.path.exists(FILE_CONFIG):
-            with open(FILE_CONFIG, newline='', encoding='utf-8') as f:
-                reader = csv.DictReader(f)
-                for r in reader:
-                    if r['category_key'] != cat:
-                        rows.append([r['category_key'], r['file_label']])
-        for lbl in labels:
-            rows.append([cat, lbl.strip()])
-        with open(FILE_CONFIG, 'w', newline='', encoding='utf-8') as f:
-            writer = csv.writer(f)
-            writer.writerow(['category_key', 'file_label'])
-            writer.writerows(rows)
+        action = request.form.get('action')
+        index = request.form.get('index', type=int)
+        if action in {'add', 'update'}:
+            name = request.form.get('name', '').strip()
+            label = request.form.get('label', '').strip()
+            description = request.form.get('description', '').strip()
+            required = bool(request.form.get('required'))
+            if not name or not label:
+                flash('Nombre e identificador son obligatorios')
+                return redirect(url_for('admin.files', category=cat))
+            file_cfg = {
+                'name': name,
+                'label': label,
+                'description': description,
+                'required': required,
+            }
+            if action == 'add':
+                files_data.append(file_cfg)
+            else:
+                if index is not None and 0 <= index < len(files_data):
+                    files_data[index] = file_cfg
+        elif action == 'delete' and index is not None:
+            if 0 <= index < len(files_data):
+                files_data.pop(index)
+        elif action == 'up' and index is not None:
+            if index > 0:
+                files_data[index - 1], files_data[index] = files_data[index], files_data[index - 1]
+        elif action == 'down' and index is not None:
+            if index < len(files_data) - 1:
+                files_data[index + 1], files_data[index] = files_data[index], files_data[index + 1]
+        save_file_fields(cat, files_data)
         flash('Archivos actualizados')
-        return redirect(url_for('admin.files'))
-    return render_template('admin_files.html', menu=menu, labels=labels)
+        return redirect(url_for('admin.files', category=cat))
+    return render_template('admin_files.html', menu=menu, files=files_data, selected_cat=cat)
 
 
 @admin_bp.route('/fields', methods=['GET', 'POST'])
@@ -115,9 +133,12 @@ def settings():
 
                 mail_test()
                 cfg['mail']['tested'] = True
+                cfg['mail']['tested_at'] = datetime.now().isoformat()
                 save_settings(cfg)
                 flash('Correo verificado')
             except Exception as e:
+                cfg['mail']['tested'] = False
+                save_settings(cfg)
                 flash(f'Error: {e}')
         elif action == 'save_mail':
             email = request.form.get('mail_user', '')
@@ -129,6 +150,8 @@ def settings():
             cfg['mail']['smtp_host'] = 'smtp.office365.com'
             cfg['mail']['smtp_port'] = 587
             cfg['mail']['tested'] = False
+            cfg['mail']['updated_at'] = datetime.now().isoformat()
+            cfg['mail']['tested_at'] = ''
             save_settings(cfg)
             flash('Credenciales de correo guardadas')
         elif action == 'save_onedrive':
@@ -141,6 +164,8 @@ def settings():
             cfg['onedrive']['tenant_id'] = request.form.get('tenant_id', '')
             cfg['onedrive']['user_id'] = email
             cfg['onedrive']['tested'] = False
+            cfg['onedrive']['updated_at'] = datetime.now().isoformat()
+            cfg['onedrive']['tested_at'] = ''
             save_settings(cfg)
             flash('Credenciales de OneDrive guardadas')
         elif action == 'test_onedrive':
@@ -153,9 +178,12 @@ def settings():
                     cfg['onedrive']['client_secret'],
                 )
                 cfg['onedrive']['tested'] = True
+                cfg['onedrive']['tested_at'] = datetime.now().isoformat()
                 save_settings(cfg)
                 flash('Conexión OneDrive verificada')
             except Exception as e:
+                cfg['onedrive']['tested'] = False
+                save_settings(cfg)
                 flash(f'Error: {e}')
         return redirect(url_for('admin.settings'))
     return render_template('admin_settings.html', settings=cfg)

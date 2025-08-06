@@ -3,7 +3,7 @@ import csv
 import json
 
 MENU_CONFIG = 'menu_config.csv'
-FILE_CONFIG = 'file_config.csv'
+FILE_CONFIG = 'file_config.json'
 FIELD_CONFIG = 'field_config.json'
 SETTINGS_FILE = 'settings.json'
 SUBMISSIONS_FILE = 'submissions.csv'
@@ -14,10 +14,18 @@ def init_configs():
         with open(MENU_CONFIG, 'w', newline='', encoding='utf-8') as f:
             csv.writer(f).writerow(['emisores', 'EMISORES', '', 'Inscripciones'])
     if not os.path.exists(FILE_CONFIG):
-        with open(FILE_CONFIG, 'w', newline='', encoding='utf-8') as f:
-            writer = csv.writer(f)
-            writer.writerow(['category_key', 'file_label'])
-            writer.writerow(['emisores', 'Archivo 1'])
+        default_files = {
+            "emisores": [
+                {
+                    "name": "archivo1",
+                    "label": "Archivo 1",
+                    "description": "",
+                    "required": True,
+                }
+            ]
+        }
+        with open(FILE_CONFIG, 'w', encoding='utf-8') as f:
+            json.dump(default_files, f, ensure_ascii=False, indent=2)
     if not os.path.exists(FIELD_CONFIG):
         default_fields = {
             "emisores": [
@@ -45,6 +53,8 @@ def init_configs():
                 "smtp_host": "smtp.office365.com",
                 "smtp_port": 587,
                 "tested": False,
+                "updated_at": "",
+                "tested_at": "",
             },
             "onedrive": {
                 "client_id": "",
@@ -52,6 +62,8 @@ def init_configs():
                 "tenant_id": "",
                 "user_id": "",
                 "tested": False,
+                "updated_at": "",
+                "tested_at": "",
             },
         }
         with open(SETTINGS_FILE, 'w', encoding='utf-8') as f:
@@ -72,16 +84,24 @@ def load_menu():
     return items
 
 
-def load_file_labels(cat):
-    labels = []
+def load_file_fields(cat: str) -> list:
+    """Load file field configuration for a category."""
     if not os.path.exists(FILE_CONFIG):
-        return labels
-    with open(FILE_CONFIG, newline='', encoding='utf-8') as f:
-        reader = csv.DictReader(f)
-        for r in reader:
-            if r['category_key'] == cat:
-                labels.append(r['file_label'])
-    return labels
+        return []
+    with open(FILE_CONFIG, encoding='utf-8') as f:
+        data = json.load(f)
+    return data.get(cat, [])
+
+
+def save_file_fields(cat: str, files: list) -> None:
+    """Persist file field configuration for a category."""
+    data = {}
+    if os.path.exists(FILE_CONFIG):
+        with open(FILE_CONFIG, encoding='utf-8') as f:
+            data = json.load(f)
+    data[cat] = files
+    with open(FILE_CONFIG, 'w', encoding='utf-8') as f:
+        json.dump(data, f, ensure_ascii=False, indent=2)
 
 
 def load_text_fields(cat):
@@ -157,6 +177,8 @@ def load_settings():
             "smtp_host": "smtp.office365.com",
             "smtp_port": 587,
             "tested": False,
+            "updated_at": "",
+            "tested_at": "",
         },
         "onedrive": {
             "client_id": "",
@@ -164,6 +186,8 @@ def load_settings():
             "tenant_id": "",
             "user_id": "",
             "tested": False,
+            "updated_at": "",
+            "tested_at": "",
         },
     }
     for section, values in defaults.items():
