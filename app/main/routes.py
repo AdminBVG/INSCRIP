@@ -2,7 +2,13 @@ import os
 from flask import Blueprint, render_template, request, redirect, url_for, flash, current_app
 from werkzeug.utils import secure_filename
 
-from ..utils import load_menu, load_file_labels, load_text_fields, is_setup_complete
+from ..utils import (
+    load_menu,
+    load_file_labels,
+    load_text_fields,
+    is_setup_complete,
+    save_submission,
+)
 from services.onedrive import upload_files
 from services.mail import send_mail
 
@@ -62,7 +68,10 @@ def inscripcion(key):
                 return redirect(request.url)
 
         try:
-            folder_path, file_links = upload_files(nombre, key, cat.get('base_path', 'Inscripciones'), files)
+            folder_path, file_links = upload_files(
+                nombre, key, cat.get('base_path', 'Inscripciones'), files
+            )
+            save_submission(key, form_values, file_links)
             send_mail(nombre, cat['name'], form_values, file_links)
             flash('Enviado correctamente')
         except Exception as e:
