@@ -1,5 +1,9 @@
 {
   "mail": {
+    "mail_user": "",
+    "mail_password": "",
+    "smtp_host": "smtp.office365.com",
+    "smtp_port": 587,
     "tested": false
   },
   "onedrive": {

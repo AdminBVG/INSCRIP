@@ -5,9 +5,14 @@
 <form method="post" class="space-y-4">
   <h2 class="text-xl font-semibold">Correo remitente</h2>
   <div>
-    <label class="block mb-1">Correo</label>
-    <input value="{{ settings.onedrive.user_id }}" class="border rounded w-full p-2" disabled>
+    <label class="block mb-1">Correo remitente</label>
+    <input name="mail_user" value="{{ settings.mail.mail_user }}" class="border rounded w-full p-2">
   </div>
+  <div>
+    <label class="block mb-1">Contraseña</label>
+    <input name="mail_password" type="password" value="{{ settings.mail.mail_password }}" class="border rounded w-full p-2">
+  </div>
+  <button name="action" value="save_mail" class="bg-blue-600 text-white px-4 py-2 rounded">Guardar</button>
   <button name="action" value="test_mail" class="bg-green-600 text-white px-4 py-2 rounded">Probar</button>
 </form>
 <form method="post" class="space-y-4 mt-8">

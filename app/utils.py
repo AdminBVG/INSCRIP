@@ -38,7 +38,13 @@ def init_configs():
             json.dump(default_fields, f, ensure_ascii=False, indent=2)
     if not os.path.exists(SETTINGS_FILE):
         default_settings = {
-            "mail": {"tested": False},
+            "mail": {
+                "mail_user": "",
+                "mail_password": "",
+                "smtp_host": "smtp.office365.com",
+                "smtp_port": 587,
+                "tested": False,
+            },
             "onedrive": {
                 "client_id": "",
                 "client_secret": "",
@@ -89,7 +95,28 @@ def load_settings():
     if not os.path.exists(SETTINGS_FILE):
         init_configs()
     with open(SETTINGS_FILE, encoding='utf-8') as f:
-        return json.load(f)
+        data = json.load(f)
+    defaults = {
+        "mail": {
+            "mail_user": "",
+            "mail_password": "",
+            "smtp_host": "smtp.office365.com",
+            "smtp_port": 587,
+            "tested": False,
+        },
+        "onedrive": {
+            "client_id": "",
+            "client_secret": "",
+            "tenant_id": "",
+            "user_id": "",
+            "tested": False,
+        },
+    }
+    for section, values in defaults.items():
+        data.setdefault(section, {})
+        for k, v in values.items():
+            data[section].setdefault(k, v)
+    return data
 
 
 def save_settings(data):
