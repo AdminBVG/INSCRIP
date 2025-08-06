@@ -6,13 +6,8 @@
   <h2 class="text-xl font-semibold">Correo remitente</h2>
   <div>
     <label class="block mb-1">Correo</label>
-    <input name="mail_email" value="{{ settings.mail.email }}" class="border rounded w-full p-2">
+    <input value="{{ settings.onedrive.user_id }}" class="border rounded w-full p-2" disabled>
   </div>
-  <div>
-    <label class="block mb-1">Contraseña / Token</label>
-    <input type="password" name="mail_password" value="{{ settings.mail.password }}" class="border rounded w-full p-2">
-  </div>
-  <button name="action" value="save_mail" class="bg-blue-600 text-white px-4 py-2 rounded">Guardar</button>
   <button name="action" value="test_mail" class="bg-green-600 text-white px-4 py-2 rounded">Probar</button>
 </form>
 <form method="post" class="space-y-4 mt-8">
@@ -32,10 +27,6 @@
   <div>
     <label class="block mb-1">user_id</label>
     <input name="user_id" value="{{ settings.onedrive.user_id }}" class="border rounded w-full p-2">
-  </div>
-  <div>
-    <label class="block mb-1">redirect_uri</label>
-    <input name="redirect_uri" value="{{ settings.onedrive.redirect_uri }}" class="border rounded w-full p-2">
   </div>
   <button name="action" value="save_onedrive" class="bg-blue-600 text-white px-4 py-2 rounded">Guardar</button>
   <button name="action" value="test_onedrive" class="bg-green-600 text-white px-4 py-2 rounded">Probar conexión</button>
