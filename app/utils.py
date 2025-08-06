@@ -6,6 +6,7 @@ MENU_CONFIG = 'menu_config.csv'
 FILE_CONFIG = 'file_config.csv'
 FIELD_CONFIG = 'field_config.json'
 SETTINGS_FILE = 'settings.json'
+SUBMISSIONS_FILE = 'submissions.csv'
 
 
 def init_configs():
@@ -108,6 +109,40 @@ def save_text_fields(cat: str, fields: list) -> None:
     data[cat] = fields
     with open(FIELD_CONFIG, 'w', encoding='utf-8') as f:
         json.dump(data, f, ensure_ascii=False, indent=2)
+
+
+def save_submission(cat: str, fields: dict, files: list) -> None:
+    """Append a user submission to the submissions file."""
+    exists = os.path.exists(SUBMISSIONS_FILE)
+    with open(SUBMISSIONS_FILE, 'a', newline='', encoding='utf-8') as f:
+        writer = csv.writer(f)
+        if not exists:
+            writer.writerow(['category', 'fields', 'files'])
+        writer.writerow([
+            cat,
+            json.dumps(fields, ensure_ascii=False),
+            json.dumps(files, ensure_ascii=False),
+        ])
+
+
+def load_submissions(cat: str = '') -> list:
+    """Return stored submissions, optionally filtered by category."""
+    if not os.path.exists(SUBMISSIONS_FILE):
+        return []
+    submissions = []
+    with open(SUBMISSIONS_FILE, newline='', encoding='utf-8') as f:
+        reader = csv.DictReader(f)
+        for row in reader:
+            if cat and row['category'] != cat:
+                continue
+            submissions.append(
+                {
+                    'category': row['category'],
+                    'fields': json.loads(row['fields']),
+                    'files': json.loads(row['files']),
+                }
+            )
+    return submissions
 
 
 def load_settings():

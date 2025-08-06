@@ -8,6 +8,7 @@ from ..utils import (
     save_settings,
     load_text_fields,
     save_text_fields,
+    load_submissions,
     FILE_CONFIG,
     MENU_CONFIG,
 )
@@ -158,3 +159,19 @@ def settings():
                 flash(f'Error: {e}')
         return redirect(url_for('admin.settings'))
     return render_template('admin_settings.html', settings=cfg)
+
+
+@admin_bp.route('/submissions')
+def submissions():
+    menu = load_menu()
+    cat = request.args.get('category', '')
+    data = load_submissions(cat)
+    menu_map = {m['key']: m['name'] for m in menu}
+    for item in data:
+        item['category_name'] = menu_map.get(item['category'], item['category'])
+    return render_template(
+        'admin_submissions.html',
+        menu=menu,
+        submissions=data,
+        selected_cat=cat,
+    )
