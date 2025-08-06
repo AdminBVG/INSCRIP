@@ -90,8 +90,11 @@ def settings():
         action = request.form.get('action')
         if action == 'test_mail':
             try:
-                email = cfg['onedrive'].get('user_id', '')
-                if not email or not _validate_microsoft_email(email):
+                email = cfg['mail'].get('mail_user', '')
+                password = cfg['mail'].get('mail_password', '')
+                if not email or not password:
+                    raise ValueError('Correo no configurado')
+                if not _validate_microsoft_email(email):
                     raise ValueError('El correo debe ser una cuenta de Microsoft')
                 from services.mail import test_connection as mail_test
 
@@ -101,6 +104,18 @@ def settings():
                 flash('Correo verificado')
             except Exception as e:
                 flash(f'Error: {e}')
+        elif action == 'save_mail':
+            email = request.form.get('mail_user', '')
+            if not email or not _validate_microsoft_email(email):
+                flash('El correo debe ser una cuenta de Microsoft')
+                return redirect(url_for('admin.settings'))
+            cfg['mail']['mail_user'] = email
+            cfg['mail']['mail_password'] = request.form.get('mail_password', '')
+            cfg['mail']['smtp_host'] = 'smtp.office365.com'
+            cfg['mail']['smtp_port'] = 587
+            cfg['mail']['tested'] = False
+            save_settings(cfg)
+            flash('Credenciales de correo guardadas')
         elif action == 'save_onedrive':
             email = request.form.get('user_id', '')
             if not email or not _validate_microsoft_email(email):
