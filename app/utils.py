@@ -38,13 +38,12 @@ def init_configs():
             json.dump(default_fields, f, ensure_ascii=False, indent=2)
     if not os.path.exists(SETTINGS_FILE):
         default_settings = {
-            "mail": {"email": "", "password": "", "tested": False},
+            "mail": {"tested": False},
             "onedrive": {
                 "client_id": "",
                 "client_secret": "",
                 "tenant_id": "",
                 "user_id": "",
-                "redirect_uri": "",
                 "tested": False,
             },
         }
@@ -102,7 +101,7 @@ def is_setup_complete():
     settings = load_settings()
     mail = settings.get('mail', {})
     drive = settings.get('onedrive', {})
-    mail_ok = all(mail.get(k) for k in ('email', 'password')) and mail.get('tested')
+    mail_ok = mail.get('tested')
     drive_ok = all(drive.get(k) for k in ('client_id', 'client_secret', 'tenant_id', 'user_id')) and drive.get('tested')
     menu_ok = bool(load_menu())
     return mail_ok and drive_ok and menu_ok

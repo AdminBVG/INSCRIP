@@ -14,6 +14,13 @@ from ..utils import (
 
 admin_bp = Blueprint('admin', __name__)
 
+
+def _validate_microsoft_email(email: str) -> bool:
+    forbidden = {'gmail.com', 'yahoo.com', 'icloud.com', 'gmx.com', 'protonmail.com'}
+    domain = email.split('@')[-1].lower()
+    microsoft_domains = {'outlook.com', 'office365.com', 'hotmail.com', 'live.com'}
+    return domain in microsoft_domains or domain not in forbidden
+
 @admin_bp.route('/menu', methods=['GET', 'POST'])
 def menu():
     menu = load_menu()
@@ -81,28 +88,28 @@ def settings():
     cfg = load_settings()
     if request.method == 'POST':
         action = request.form.get('action')
-        if action == 'save_mail':
-            cfg['mail']['email'] = request.form.get('mail_email', '')
-            cfg['mail']['password'] = request.form.get('mail_password', '')
-            cfg['mail']['tested'] = False
-            save_settings(cfg)
-            flash('Correo guardado')
-        elif action == 'test_mail':
+        if action == 'test_mail':
             try:
+                email = cfg['onedrive'].get('user_id', '')
+                if not email or not _validate_microsoft_email(email):
+                    raise ValueError('El correo debe ser una cuenta de Microsoft')
                 from services.mail import test_connection as mail_test
 
-                mail_test(cfg['mail']['email'], cfg['mail']['password'])
+                mail_test()
                 cfg['mail']['tested'] = True
                 save_settings(cfg)
                 flash('Correo verificado')
             except Exception as e:
                 flash(f'Error: {e}')
         elif action == 'save_onedrive':
+            email = request.form.get('user_id', '')
+            if not email or not _validate_microsoft_email(email):
+                flash('El correo debe ser una cuenta de Microsoft')
+                return redirect(url_for('admin.settings'))
             cfg['onedrive']['client_id'] = request.form.get('client_id', '')
             cfg['onedrive']['client_secret'] = request.form.get('client_secret', '')
             cfg['onedrive']['tenant_id'] = request.form.get('tenant_id', '')
-            cfg['onedrive']['user_id'] = request.form.get('user_id', '')
-            cfg['onedrive']['redirect_uri'] = request.form.get('redirect_uri', '')
+            cfg['onedrive']['user_id'] = email
             cfg['onedrive']['tested'] = False
             save_settings(cfg)
             flash('Credenciales de OneDrive guardadas')

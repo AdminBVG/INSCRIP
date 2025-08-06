@@ -1,28 +1,34 @@
-import smtplib
-from email.mime.text import MIMEText
+import requests
 from app.utils import load_settings
+from .graph_auth import get_access_token, GraphAPIError
 
 
-SMTP_HOST = 'smtp.gmail.com'
-SMTP_PORT = 587
-
-
-def test_connection(email: str, password: str) -> None:
-    if not email or not password:
-        raise ValueError('Credenciales incompletas')
-    with smtplib.SMTP(SMTP_HOST, SMTP_PORT, timeout=10) as server:
-        server.starttls()
-        server.login(email, password)
-        server.noop()
+def test_connection() -> None:
+    cfg = load_settings().get('onedrive', {})
+    email = cfg.get('user_id')
+    if not email:
+        raise ValueError('Correo no configurado')
+    token = get_access_token(cfg)
+    payload = {
+        "message": {
+            "subject": "Prueba de correo",
+            "body": {"contentType": "Text", "content": "Prueba de envío de correo."},
+            "toRecipients": [{"emailAddress": {"address": email}}],
+        },
+        "saveToSentItems": "false",
+    }
+    url = f"https://graph.microsoft.com/v1.0/users/{email}/sendMail"
+    r = requests.post(url, headers={'Authorization': f'Bearer {token}'}, json=payload)
+    if r.status_code >= 400:
+        raise GraphAPIError(r.status_code, r.text)
 
 
 def send_mail(nombre, categoria, fields, file_links):
-    cfg = load_settings().get('mail', {})
-    email = cfg.get('email')
-    password = cfg.get('password')
-    if not email or not password:
+    cfg = load_settings()['onedrive']
+    email = cfg.get('user_id')
+    if not email:
         raise ValueError('Correo no configurado')
-
+    token = get_access_token(cfg)
     subject = f"Inscripción recibida: {nombre} - {categoria}"
     body = "<p>Se ha recibido una inscripción con los siguientes datos:</p><ul>"
     for label, value in fields.items():
@@ -31,13 +37,15 @@ def send_mail(nombre, categoria, fields, file_links):
     for link in file_links:
         body += f"<li><a href='{link}'>{link}</a></li>"
     body += "</ul>"
-
-    msg = MIMEText(body, 'html')
-    msg['Subject'] = subject
-    msg['From'] = email
-    msg['To'] = email
-
-    with smtplib.SMTP(SMTP_HOST, SMTP_PORT) as server:
-        server.starttls()
-        server.login(email, password)
-        server.sendmail(email, [email], msg.as_string())
+    payload = {
+        "message": {
+            "subject": subject,
+            "body": {"contentType": "HTML", "content": body},
+            "toRecipients": [{"emailAddress": {"address": email}}],
+        },
+        "saveToSentItems": "false",
+    }
+    url = f"https://graph.microsoft.com/v1.0/users/{email}/sendMail"
+    r = requests.post(url, headers={'Authorization': f'Bearer {token}'}, json=payload)
+    if r.status_code >= 400:
+        raise GraphAPIError(r.status_code, r.text)
