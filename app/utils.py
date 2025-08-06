@@ -91,6 +91,25 @@ def load_text_fields(cat):
     return data.get(cat, [])
 
 
+def save_text_fields(cat: str, fields: list) -> None:
+    """Persist text field configuration for a category.
+
+    Parameters
+    ----------
+    cat: str
+        Identifier of the category whose fields are being saved.
+    fields: list
+        List of dictionaries representing field metadata.
+    """
+    data = {}
+    if os.path.exists(FIELD_CONFIG):
+        with open(FIELD_CONFIG, encoding='utf-8') as f:
+            data = json.load(f)
+    data[cat] = fields
+    with open(FIELD_CONFIG, 'w', encoding='utf-8') as f:
+        json.dump(data, f, ensure_ascii=False, indent=2)
+
+
 def load_settings():
     if not os.path.exists(SETTINGS_FILE):
         init_configs()

@@ -1,15 +1,15 @@
 import os
 import csv
-import json
 from flask import Blueprint, render_template, request, redirect, url_for, flash
 
 from ..utils import (
     load_menu,
     load_settings,
     save_settings,
+    load_text_fields,
+    save_text_fields,
     FILE_CONFIG,
     MENU_CONFIG,
-    FIELD_CONFIG,
 )
 
 admin_bp = Blueprint('admin', __name__)
@@ -63,24 +63,38 @@ def files():
 @admin_bp.route('/fields', methods=['GET', 'POST'])
 def fields():
     menu = load_menu()
-    fields_data = []
+    cat = request.values.get('category', '')
+    fields_data = load_text_fields(cat) if cat else []
     if request.method == 'POST':
-        cat = request.form['category']
-        try:
-            fields_data = json.loads(request.form['fields'] or '[]')
-        except json.JSONDecodeError:
-            flash('Formato de campos inválido')
-            return redirect(request.url)
-        data = {}
-        if os.path.exists(FIELD_CONFIG):
-            with open(FIELD_CONFIG, encoding='utf-8') as f:
-                data = json.load(f)
-        data[cat] = fields_data
-        with open(FIELD_CONFIG, 'w', encoding='utf-8') as f:
-            json.dump(data, f, ensure_ascii=False, indent=2)
+        action = request.form.get('action')
+        index = request.form.get('index', type=int)
+        if action in {'add', 'update'}:
+            name = request.form.get('name', '').strip()
+            label = request.form.get('label', '').strip()
+            ftype = request.form.get('type', 'text').strip() or 'text'
+            required = bool(request.form.get('required'))
+            if not name or not label:
+                flash('Nombre y etiqueta son obligatorios')
+                return redirect(url_for('admin.fields', category=cat))
+            field = {'name': name, 'label': label, 'type': ftype, 'required': required}
+            if action == 'add':
+                fields_data.append(field)
+            else:
+                if index is not None and 0 <= index < len(fields_data):
+                    fields_data[index] = field
+        elif action == 'delete' and index is not None:
+            if 0 <= index < len(fields_data):
+                fields_data.pop(index)
+        elif action == 'up' and index is not None:
+            if index > 0:
+                fields_data[index - 1], fields_data[index] = fields_data[index], fields_data[index - 1]
+        elif action == 'down' and index is not None:
+            if index < len(fields_data) - 1:
+                fields_data[index + 1], fields_data[index] = fields_data[index], fields_data[index + 1]
+        save_text_fields(cat, fields_data)
         flash('Campos actualizados')
-        return redirect(url_for('admin.fields'))
-    return render_template('admin_fields.html', menu=menu, fields=fields_data)
+        return redirect(url_for('admin.fields', category=cat))
+    return render_template('admin_fields.html', menu=menu, fields=fields_data, selected_cat=cat)
 
 
 @admin_bp.route('/settings', methods=['GET', 'POST'])
