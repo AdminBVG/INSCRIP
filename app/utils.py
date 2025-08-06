@@ -1,175 +1,128 @@
-import os
-import csv
-import json
-
-MENU_CONFIG = 'menu_config.csv'
-FILE_CONFIG = 'file_config.json'
-FIELD_CONFIG = 'field_config.json'
-SETTINGS_FILE = 'settings.json'
-SUBMISSIONS_FILE = 'submissions.csv'
-
-
-def init_configs():
-    if not os.path.exists(MENU_CONFIG):
-        with open(MENU_CONFIG, 'w', newline='', encoding='utf-8') as f:
-            csv.writer(f).writerow(['emisores', 'EMISORES', '', 'Inscripciones'])
-    if not os.path.exists(FILE_CONFIG):
-        default_files = {
-            "emisores": [
-                {
-                    "name": "archivo1",
-                    "label": "Archivo 1",
-                    "description": "",
-                    "required": True,
-                }
-            ]
-        }
-        with open(FILE_CONFIG, 'w', encoding='utf-8') as f:
-            json.dump(default_files, f, ensure_ascii=False, indent=2)
-    if not os.path.exists(FIELD_CONFIG):
-        default_fields = {
-            "emisores": [
-                {
-                    "name": "nombre",
-                    "label": "Nombre completo",
-                    "type": "text",
-                    "required": True
-                },
-                {
-                    "name": "email",
-                    "label": "Correo electrónico",
-                    "type": "email",
-                    "required": True
-                }
-            ]
-        }
-        with open(FIELD_CONFIG, 'w', encoding='utf-8') as f:
-            json.dump(default_fields, f, ensure_ascii=False, indent=2)
-    if not os.path.exists(SETTINGS_FILE):
-        default_settings = {
-            "mail": {
-                "mail_user": "",
-                "mail_password": "",
-                "smtp_host": "smtp.office365.com",
-                "smtp_port": 587,
-                "tested": False,
-                "updated_at": "",
-                "tested_at": "",
-            },
-            "onedrive": {
-                "client_id": "",
-                "client_secret": "",
-                "tenant_id": "",
-                "user_id": "",
-                "tested": False,
-                "updated_at": "",
-                "tested_at": "",
-            },
-        }
-        with open(SETTINGS_FILE, 'w', encoding='utf-8') as f:
-            json.dump(default_settings, f, ensure_ascii=False, indent=2)
+from datetime import datetime
+from .db import SessionLocal
+from .models import Category, FileField, TextField, Submission, Setting
 
 
 def load_menu():
-    items = []
-    with open(MENU_CONFIG, newline='', encoding='utf-8') as f:
-        for row in csv.reader(f):
-            if not row:
-                continue
-            key = row[0]
-            name = row[1] if len(row) > 1 else ''
-            parent = row[2] if len(row) > 2 else ''
-            base_path = row[3] if len(row) > 3 else ''
-            items.append({'key': key, 'name': name, 'parent': parent, 'base_path': base_path})
-    return items
-
-
-def load_file_fields(cat: str) -> list:
-    """Load file field configuration for a category."""
-    if not os.path.exists(FILE_CONFIG):
-        return []
-    with open(FILE_CONFIG, encoding='utf-8') as f:
-        data = json.load(f)
-    return data.get(cat, [])
-
-
-def save_file_fields(cat: str, files: list) -> None:
-    """Persist file field configuration for a category."""
-    data = {}
-    if os.path.exists(FILE_CONFIG):
-        with open(FILE_CONFIG, encoding='utf-8') as f:
-            data = json.load(f)
-    data[cat] = files
-    with open(FILE_CONFIG, 'w', encoding='utf-8') as f:
-        json.dump(data, f, ensure_ascii=False, indent=2)
-
-
-def load_text_fields(cat):
-    if not os.path.exists(FIELD_CONFIG):
-        return []
-    with open(FIELD_CONFIG, encoding='utf-8') as f:
-        data = json.load(f)
-    return data.get(cat, [])
-
-
-def save_text_fields(cat: str, fields: list) -> None:
-    """Persist text field configuration for a category.
-
-    Parameters
-    ----------
-    cat: str
-        Identifier of the category whose fields are being saved.
-    fields: list
-        List of dictionaries representing field metadata.
-    """
-    data = {}
-    if os.path.exists(FIELD_CONFIG):
-        with open(FIELD_CONFIG, encoding='utf-8') as f:
-            data = json.load(f)
-    data[cat] = fields
-    with open(FIELD_CONFIG, 'w', encoding='utf-8') as f:
-        json.dump(data, f, ensure_ascii=False, indent=2)
-
-
-def save_submission(cat: str, fields: dict, files: list) -> None:
-    """Append a user submission to the submissions file."""
-    exists = os.path.exists(SUBMISSIONS_FILE)
-    with open(SUBMISSIONS_FILE, 'a', newline='', encoding='utf-8') as f:
-        writer = csv.writer(f)
-        if not exists:
-            writer.writerow(['category', 'fields', 'files'])
-        writer.writerow([
-            cat,
-            json.dumps(fields, ensure_ascii=False),
-            json.dumps(files, ensure_ascii=False),
-        ])
-
-
-def load_submissions(cat: str = '') -> list:
-    """Return stored submissions, optionally filtered by category."""
-    if not os.path.exists(SUBMISSIONS_FILE):
-        return []
-    submissions = []
-    with open(SUBMISSIONS_FILE, newline='', encoding='utf-8') as f:
-        reader = csv.DictReader(f)
-        for row in reader:
-            if cat and row['category'] != cat:
-                continue
-            submissions.append(
+    with SessionLocal() as db:
+        categories = db.query(Category).all()
+        result = []
+        for c in categories:
+            result.append(
                 {
-                    'category': row['category'],
-                    'fields': json.loads(row['fields']),
-                    'files': json.loads(row['files']),
+                    'key': c.key,
+                    'name': c.name,
+                    'parent': c.parent.key if c.parent else '',
+                    'base_path': c.base_path,
                 }
             )
-    return submissions
+        return result
+
+
+def load_file_fields(cat_key: str) -> list:
+    with SessionLocal() as db:
+        cat = db.query(Category).filter_by(key=cat_key).first()
+        if not cat:
+            return []
+        fields = (
+            db.query(FileField)
+            .filter_by(category_id=cat.id)
+            .order_by(FileField.order)
+            .all()
+        )
+        return [
+            {
+                'name': f.name,
+                'label': f.label,
+                'description': f.description,
+                'required': f.required,
+            }
+            for f in fields
+        ]
+
+
+def save_file_fields(cat_key: str, files: list) -> None:
+    with SessionLocal() as db:
+        cat = db.query(Category).filter_by(key=cat_key).first()
+        if not cat:
+            return
+        db.query(FileField).filter_by(category_id=cat.id).delete()
+        for idx, f in enumerate(files):
+            db.add(FileField(category_id=cat.id, order=idx, **f))
+        db.commit()
+
+
+def load_text_fields(cat_key: str) -> list:
+    with SessionLocal() as db:
+        cat = db.query(Category).filter_by(key=cat_key).first()
+        if not cat:
+            return []
+        fields = (
+            db.query(TextField)
+            .filter_by(category_id=cat.id)
+            .order_by(TextField.order)
+            .all()
+        )
+        return [
+            {
+                'name': f.name,
+                'label': f.label,
+                'type': f.type,
+                'required': f.required,
+            }
+            for f in fields
+        ]
+
+
+def save_text_fields(cat_key: str, fields: list) -> None:
+    with SessionLocal() as db:
+        cat = db.query(Category).filter_by(key=cat_key).first()
+        if not cat:
+            return
+        db.query(TextField).filter_by(category_id=cat.id).delete()
+        for idx, f in enumerate(fields):
+            db.add(TextField(category_id=cat.id, order=idx, **f))
+        db.commit()
+
+
+def save_submission(cat_key: str, fields: dict, files: list) -> None:
+    with SessionLocal() as db:
+        cat = db.query(Category).filter_by(key=cat_key).first()
+        db.add(
+            Submission(
+                category_id=cat.id if cat else None,
+                fields=fields,
+                files=files,
+                created_at=datetime.utcnow(),
+            )
+        )
+        db.commit()
+
+
+def load_submissions(cat_key: str = '') -> list:
+    with SessionLocal() as db:
+        query = db.query(Submission)
+        if cat_key:
+            cat = db.query(Category).filter_by(key=cat_key).first()
+            if not cat:
+                return []
+            query = query.filter_by(category_id=cat.id)
+        subs = query.all()
+        result = []
+        for s in subs:
+            result.append(
+                {
+                    'category': s.category.key if s.category else '',
+                    'fields': s.fields,
+                    'files': s.files,
+                }
+            )
+        return result
 
 
 def load_settings():
-    if not os.path.exists(SETTINGS_FILE):
-        init_configs()
-    with open(SETTINGS_FILE, encoding='utf-8') as f:
-        data = json.load(f)
+    with SessionLocal() as db:
+        settings = {s.section: s.data for s in db.query(Setting).all()}
     defaults = {
         "mail": {
             "mail_user": "",
@@ -191,22 +144,32 @@ def load_settings():
         },
     }
     for section, values in defaults.items():
-        data.setdefault(section, {})
+        settings.setdefault(section, {})
         for k, v in values.items():
-            data[section].setdefault(k, v)
-    return data
+            settings[section].setdefault(k, v)
+    return settings
 
 
 def save_settings(data):
-    with open(SETTINGS_FILE, 'w', encoding='utf-8') as f:
-        json.dump(data, f, ensure_ascii=False, indent=2)
+    with SessionLocal() as db:
+        for section, values in data.items():
+            obj = db.query(Setting).filter_by(section=section).first()
+            if obj:
+                obj.data = values
+            else:
+                obj = Setting(section=section, data=values)
+                db.add(obj)
+        db.commit()
 
 
 def is_setup_complete():
     settings = load_settings()
     mail = settings.get('mail', {})
     drive = settings.get('onedrive', {})
+    with SessionLocal() as db:
+        menu_ok = db.query(Category).first() is not None
     mail_ok = mail.get('tested')
-    drive_ok = all(drive.get(k) for k in ('client_id', 'client_secret', 'tenant_id', 'user_id')) and drive.get('tested')
-    menu_ok = bool(load_menu())
+    drive_ok = drive.get('tested') and all(
+        drive.get(k) for k in ('client_id', 'client_secret', 'tenant_id', 'user_id')
+    )
     return mail_ok and drive_ok and menu_ok

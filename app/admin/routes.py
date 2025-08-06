@@ -1,7 +1,8 @@
-import csv
 from datetime import datetime
 from flask import Blueprint, render_template, request, redirect, url_for, flash
 
+from ..db import SessionLocal
+from ..models import Category
 from ..utils import (
     load_menu,
     load_settings,
@@ -11,7 +12,6 @@ from ..utils import (
     load_file_fields,
     save_file_fields,
     load_submissions,
-    MENU_CONFIG,
 )
 
 admin_bp = Blueprint('admin', __name__)
@@ -23,19 +23,36 @@ def _validate_microsoft_email(email: str) -> bool:
     microsoft_domains = {'outlook.com', 'office365.com', 'hotmail.com', 'live.com'}
     return domain in microsoft_domains or domain not in forbidden
 
+
+def _build_tree(items):
+    nodes = {i['key']: {**i, 'children': []} for i in items}
+    roots = []
+    for item in nodes.values():
+        parent = item['parent']
+        if parent and parent in nodes:
+            nodes[parent]['children'].append(item)
+        else:
+            roots.append(item)
+    return roots
+
 @admin_bp.route('/menu', methods=['GET', 'POST'])
 def menu():
     menu = load_menu()
     if request.method == 'POST':
         key = request.form['key']
         name = request.form['name']
-        parent = request.form['parent']
+        parent_key = request.form['parent']
         base_path = request.form.get('base_path', '')
-        with open(MENU_CONFIG, 'a', newline='', encoding='utf-8') as f:
-            csv.writer(f).writerow([key, name, parent, base_path])
+        with SessionLocal() as db:
+            parent = (
+                db.query(Category).filter_by(key=parent_key).first() if parent_key else None
+            )
+            db.add(Category(key=key, name=name, parent=parent, base_path=base_path))
+            db.commit()
         flash('Menú actualizado')
         return redirect(url_for('admin.menu'))
-    return render_template('admin_menu.html', menu=menu)
+    tree = _build_tree(menu)
+    return render_template('admin_menu.html', menu=tree)
 
 @admin_bp.route('/files', methods=['GET', 'POST'])
 def files():

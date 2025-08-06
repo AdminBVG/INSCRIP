@@ -22,7 +22,7 @@ def index():
         return redirect(url_for('admin.settings'))
     menu = load_menu()
     roots = [i for i in menu if i['parent'] == '']
-    return render_template('index.html', menu=roots)
+    return render_template('index.html', menu=roots, title='Inscripciones')
 
 
 @main_bp.route('/inscripcion/<key>', methods=['GET', 'POST'])
@@ -35,6 +35,10 @@ def inscripcion(key):
     if not cat:
         flash('Categoría no encontrada')
         return redirect(url_for('main.index'))
+
+    children = [i for i in menu if i['parent'] == key]
+    if children and request.method == 'GET':
+        return render_template('index.html', menu=children, title=cat['name'])
 
     files_cfg = load_file_fields(key)
     fields = load_text_fields(key)

@@ -1,3 +1,8 @@
 __pycache__/
 *.pyc
 submissions.csv
+menu_config.csv
+file_config.json
+field_config.json
+settings.json
+app.db
