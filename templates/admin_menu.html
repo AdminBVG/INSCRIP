@@ -22,9 +22,17 @@
   <button type="submit" class="bg-blue-600 text-white px-4 py-2 rounded">Agregar</button>
 </form>
 <h2 class="text-xl font-semibold mt-8 mb-2">Categorías existentes</h2>
+{% macro render(items) %}
 <ul class="list-disc pl-5">
-  {% for item in menu %}
-    <li>{{ item.name }} (clave: {{ item.key }}, padre: {{ item.parent }}, ruta: {{ item.base_path }})</li>
+  {% for item in items %}
+    <li>
+      {{ item.name }} (clave: {{ item.key }}, padre: {{ item.parent }}, ruta: {{ item.base_path }})
+      {% if item.children %}
+        {{ render(item.children) }}
+      {% endif %}
+    </li>
   {% endfor %}
 </ul>
+{% endmacro %}
+{{ render(menu) }}
 {% endblock %}
