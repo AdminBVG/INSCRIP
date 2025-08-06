@@ -1,0 +1,43 @@
+{% extends 'base.html' %}
+{% block title %}Configuración{% endblock %}
+{% block content %}
+<h1 class="text-2xl font-bold mb-4">Configuración del sistema</h1>
+<form method="post" class="space-y-4">
+  <h2 class="text-xl font-semibold">Correo remitente</h2>
+  <div>
+    <label class="block mb-1">Correo</label>
+    <input name="mail_email" value="{{ settings.mail.email }}" class="border rounded w-full p-2">
+  </div>
+  <div>
+    <label class="block mb-1">Contraseña / Token</label>
+    <input type="password" name="mail_password" value="{{ settings.mail.password }}" class="border rounded w-full p-2">
+  </div>
+  <button name="action" value="save_mail" class="bg-blue-600 text-white px-4 py-2 rounded">Guardar</button>
+  <button name="action" value="test_mail" class="bg-green-600 text-white px-4 py-2 rounded">Probar</button>
+</form>
+<form method="post" class="space-y-4 mt-8">
+  <h2 class="text-xl font-semibold">Microsoft Graph / OneDrive</h2>
+  <div>
+    <label class="block mb-1">client_id</label>
+    <input name="client_id" value="{{ settings.onedrive.client_id }}" class="border rounded w-full p-2">
+  </div>
+  <div>
+    <label class="block mb-1">client_secret</label>
+    <input name="client_secret" value="{{ settings.onedrive.client_secret }}" class="border rounded w-full p-2">
+  </div>
+  <div>
+    <label class="block mb-1">tenant_id</label>
+    <input name="tenant_id" value="{{ settings.onedrive.tenant_id }}" class="border rounded w-full p-2">
+  </div>
+  <div>
+    <label class="block mb-1">user_id</label>
+    <input name="user_id" value="{{ settings.onedrive.user_id }}" class="border rounded w-full p-2">
+  </div>
+  <div>
+    <label class="block mb-1">redirect_uri</label>
+    <input name="redirect_uri" value="{{ settings.onedrive.redirect_uri }}" class="border rounded w-full p-2">
+  </div>
+  <button name="action" value="save_onedrive" class="bg-blue-600 text-white px-4 py-2 rounded">Guardar</button>
+  <button name="action" value="test_onedrive" class="bg-green-600 text-white px-4 py-2 rounded">Probar conexión</button>
+</form>
+{% endblock %}

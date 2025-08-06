@@ -1,0 +1,15 @@
+{
+  "mail": {
+    "email": "",
+    "password": "",
+    "tested": false
+  },
+  "onedrive": {
+    "client_id": "",
+    "client_secret": "",
+    "tenant_id": "",
+    "user_id": "",
+    "redirect_uri": "",
+    "tested": false
+  }
+}
