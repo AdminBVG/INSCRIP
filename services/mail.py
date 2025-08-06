@@ -52,3 +52,4 @@ def send_mail(nombre, categoria, fields, file_links):
     r = requests.post(url, headers=headers, json=message)
     if r.status_code >= 300:
         raise Exception(f"Error enviando correo: {r.text}")
+
