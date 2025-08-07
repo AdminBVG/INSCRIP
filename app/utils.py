@@ -3,17 +3,28 @@ from .db import SessionLocal
 from .models import Category, FileField, TextField, Submission, Setting
 
 
-def load_menu():
+def load_menu(include_inactive: bool = False):
+    """Return list of categories.
+
+    Args:
+        include_inactive: When True include inactive categories.
+    """
     with SessionLocal() as db:
-        categories = db.query(Category).all()
+        query = db.query(Category)
+        if not include_inactive:
+            query = query.filter_by(active=True)
+        categories = query.all()
         result = []
         for c in categories:
             result.append(
                 {
+                    'id': c.id,
                     'key': c.key,
                     'name': c.name,
                     'parent': c.parent.key if c.parent else '',
+                    'parent_id': c.parent_id,
                     'base_path': c.base_path,
+                    'active': c.active,
                 }
             )
         return result
