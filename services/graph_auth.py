@@ -1,5 +1,9 @@
+import logging
 import requests
 from app.utils import load_settings
+
+
+logger = logging.getLogger(__name__)
 
 
 class GraphAPIError(Exception):
@@ -29,7 +33,14 @@ def get_access_token(cfg=None):
         'client_secret': cfg.get('client_secret'),
         'grant_type': 'client_credentials',
     }
-    response = requests.post(url, data=data)
-    if response.status_code >= 400:
-        raise GraphAPIError(response.status_code, response.text)
-    return response.json().get('access_token')
+    try:
+        response = requests.post(url, data=data)
+        response.raise_for_status()
+    except requests.RequestException as e:
+        status = getattr(e.response, 'status_code', 0)
+        text = getattr(e.response, 'text', str(e))
+        logger.exception("Error obteniendo token de Graph")
+        raise GraphAPIError(status, text) from e
+    token = response.json().get('access_token')
+    logger.info("Token de Graph obtenido")
+    return token
