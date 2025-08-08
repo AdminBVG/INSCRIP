@@ -13,6 +13,7 @@ from ..utils import (
 )
 from services.onedrive import upload_files
 from services.mail import send_mail
+from services.graph_auth import GraphAPIError
 
 
 logging.basicConfig(level=logging.INFO)
@@ -24,7 +25,7 @@ main_bp = Blueprint('main', __name__)
 @main_bp.route('/')
 def index():
     if not is_setup_complete():
-        flash('Debe completar la configuración antes de continuar')
+        flash('Debe completar la configuración antes de continuar', 'error')
         return redirect(url_for('admin.settings'))
     menu = load_menu()
     roots = [i for i in menu if i['parent'] == '']
@@ -34,12 +35,12 @@ def index():
 @main_bp.route('/inscripcion/<key>', methods=['GET', 'POST'])
 def inscripcion(key):
     if not is_setup_complete():
-        flash('Debe completar la configuración antes de continuar')
+        flash('Debe completar la configuración antes de continuar', 'error')
         return redirect(url_for('admin.settings'))
     menu = load_menu()
     cat = next((i for i in menu if i['key'] == key), None)
     if not cat:
-        flash('Categoría no encontrada')
+        flash('Categoría no encontrada', 'error')
         return redirect(url_for('main.index'))
 
     children = [i for i in menu if i['parent'] == key]
@@ -55,13 +56,13 @@ def inscripcion(key):
         for field in fields:
             value = request.form.get(field['name'], '').strip()
             if field.get('required') and not value:
-                flash(f"El campo {field['label']} es obligatorio")
+                flash(f"El campo {field['label']} es obligatorio", 'error')
                 return redirect(request.url)
             form_values[field['label']] = value
             if field['name'] == 'nombre':
                 nombre = value
         if not nombre:
-            flash('Debe incluir el campo nombre')
+            flash('Debe incluir el campo nombre', 'error')
             return redirect(request.url)
 
         uploaded_files = []
@@ -69,18 +70,18 @@ def inscripcion(key):
         for fcfg in files_cfg:
             f = request.files.get(fcfg['name'])
             if fcfg.get('required') and (not f or f.filename == ''):
-                flash(f"El archivo {fcfg['label']} es obligatorio")
+                flash(f"El archivo {fcfg['label']} es obligatorio", 'error')
                 return redirect(request.url)
             if f and f.filename != '':
                 filename = secure_filename(f.filename)
                 ext = os.path.splitext(filename)[1].lower()
                 if ext not in allowed_exts:
-                    flash(f'Archivo no permitido: {filename}')
+                    flash(f'Archivo no permitido: {filename}', 'error')
                     return redirect(request.url)
                 uploaded_files.append(f)
 
         if not uploaded_files:
-            flash('Debe subir al menos un archivo')
+            flash('Debe subir al menos un archivo', 'error')
             return redirect(request.url)
 
         cfg = load_settings()
@@ -91,9 +92,13 @@ def inscripcion(key):
                 nombre, key, base_path, uploaded_files
             )
             save_submission(key, form_values, file_links)
+        except GraphAPIError as e:
+            logger.exception("Error al subir archivos a OneDrive")
+            flash(f"Error al subir archivos: {e}", 'error')
+            return redirect(url_for('main.index'))
         except Exception as e:
-            logger.exception("Error al subir archivos")
-            flash(f"Error al subir archivos: {e}")
+            logger.exception("Error inesperado al subir archivos")
+            flash(f"Error inesperado al subir archivos: {e}", 'error')
             return redirect(url_for('main.index'))
 
         try:
@@ -106,9 +111,9 @@ def inscripcion(key):
             )
         except Exception as e:
             logger.exception("Error enviando correo")
-            flash(f"Inscripción guardada pero no se pudo enviar el correo: {e}")
+            flash(f"Inscripción guardada pero no se pudo enviar el correo: {e}", 'error')
         else:
-            flash('Inscripción completada correctamente y correo enviado')
+            flash('Inscripción guardada, archivos subidos y correo enviado', 'success')
 
         return redirect(url_for('main.index'))
 

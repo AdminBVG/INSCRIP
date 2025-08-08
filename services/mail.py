@@ -63,7 +63,7 @@ def send_mail(nombre, categoria, fields, file_links, recipients=None):
             server.login(user, password)
             server.send_message(msg)
         return True
-    except smtplib.SMTPException as e:
+    except Exception as e:
         logger.exception("Error enviando correo")
-        raise RuntimeError("Error enviando correo") from e
+        raise RuntimeError(f"Error enviando correo: {e}") from e
 
