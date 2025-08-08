@@ -66,6 +66,12 @@ def send_mail(nombre, categoria, fields, file_links, recipients=None):
         print('send_mail() completado')
         return True
     except Exception as e:
-        logger.exception("Error enviando correo")
-        raise RuntimeError(f"Error enviando correo: {e}") from e
+        logger.exception(
+            "Error enviando correo", extra={
+                "recipients": recipients,
+                "host": host,
+                "port": port,
+            },
+        )
+        return False
 
