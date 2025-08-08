@@ -1,4 +1,5 @@
 import os
+import logging
 from flask import Blueprint, render_template, request, redirect, url_for, flash, current_app
 from werkzeug.utils import secure_filename
 
@@ -12,6 +13,10 @@ from ..utils import (
 )
 from services.onedrive import upload_files
 from services.mail import send_mail
+
+
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
 
 main_bp = Blueprint('main', __name__)
 
@@ -78,17 +83,33 @@ def inscripcion(key):
             flash('Debe subir al menos un archivo')
             return redirect(request.url)
 
+        cfg = load_settings()
+        base_path = cat.get('base_path') or cfg['onedrive'].get('base_path', 'Inscripciones')
+
         try:
-            cfg = load_settings()
-            base_path = cat.get('base_path') or cfg['onedrive'].get('base_path', 'Inscripciones')
             folder_path, file_links = upload_files(
                 nombre, key, base_path, uploaded_files
             )
             save_submission(key, form_values, file_links)
-            send_mail(nombre, cat['name'], form_values, file_links, cat.get('notify_emails', ''))
-            flash('Enviado correctamente')
         except Exception as e:
-            flash(f'Error: {str(e)}')
+            logger.exception("Error al subir archivos")
+            flash(f"Error al subir archivos: {e}")
+            return redirect(url_for('main.index'))
+
+        try:
+            send_mail(
+                nombre,
+                cat['name'],
+                form_values,
+                file_links,
+                cat.get('notify_emails', ''),
+            )
+        except Exception as e:
+            logger.exception("Error enviando correo")
+            flash(f"Inscripción guardada pero no se pudo enviar el correo: {e}")
+        else:
+            flash('Inscripción completada correctamente y correo enviado')
+
         return redirect(url_for('main.index'))
 
     return render_template('form.html', category_name=cat['name'], files=files_cfg, fields=fields)

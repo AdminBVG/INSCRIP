@@ -1,8 +1,11 @@
+import logging
 import smtplib
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
 
 from app.utils import load_settings
+
+logger = logging.getLogger(__name__)
 
 
 def _get_cfg():
@@ -54,8 +57,13 @@ def send_mail(nombre, categoria, fields, file_links, recipients=None):
     msg['From'] = user
     msg['To'] = ", ".join(recipients)
     msg.attach(MIMEText(body, 'html'))
-    with smtplib.SMTP(host, port) as server:
-        server.starttls()
-        server.login(user, password)
-        server.send_message(msg)
+    try:
+        with smtplib.SMTP(host, port) as server:
+            server.starttls()
+            server.login(user, password)
+            server.send_message(msg)
+        return True
+    except smtplib.SMTPException as e:
+        logger.exception("Error enviando correo")
+        raise RuntimeError("Error enviando correo") from e
 
