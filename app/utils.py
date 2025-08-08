@@ -24,6 +24,7 @@ def load_menu(include_inactive: bool = False):
                     'parent': c.parent.key if c.parent else '',
                     'parent_id': c.parent_id,
                     'base_path': c.base_path,
+                    'notify_emails': c.notify_emails,
                     'active': c.active,
                 }
             )
@@ -149,6 +150,7 @@ def load_settings():
             "client_secret": "",
             "tenant_id": "",
             "user_id": "",
+            "base_path": "Inscripciones",
             "tested": False,
             "updated_at": "",
             "tested_at": "",

@@ -34,8 +34,13 @@ def test_connection(
         server.send_message(msg)
 
 
-def send_mail(nombre, categoria, fields, file_links):
+def send_mail(nombre, categoria, fields, file_links, recipients=None):
     user, password, host, port = _get_cfg()
+    if recipients:
+        if isinstance(recipients, str):
+            recipients = [r.strip() for r in recipients.split(',') if r.strip()]
+    else:
+        recipients = [user]
     subject = f"Inscripción recibida: {nombre} - {categoria}"
     body = "<p>Se ha recibido una inscripción con los siguientes datos:</p><ul>"
     for label, value in fields.items():
@@ -47,7 +52,7 @@ def send_mail(nombre, categoria, fields, file_links):
     msg = MIMEMultipart('alternative')
     msg['Subject'] = subject
     msg['From'] = user
-    msg['To'] = user
+    msg['To'] = ", ".join(recipients)
     msg.attach(MIMEText(body, 'html'))
     with smtplib.SMTP(host, port) as server:
         server.starttls()
