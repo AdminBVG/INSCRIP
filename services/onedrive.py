@@ -1,8 +1,7 @@
 import logging
 import requests
 from werkzeug.utils import secure_filename
-from app.utils import load_settings
-from .graph_auth import get_access_token, GraphAPIError
+from .graph_auth import GraphAPIError
 
 logger = logging.getLogger(__name__)
 
@@ -20,11 +19,12 @@ def create_folder_if_not_exists(token, user_id, folder_name, parent='root'):
             headers=headers,
             params={"$filter": f"name eq '{folder_name}'"},
         )
+        r.raise_for_status()
     except requests.RequestException as e:
         logger.exception("Error consultando carpeta en OneDrive")
-        raise GraphAPIError(0, str(e)) from e
-    if r.status_code >= 400:
-        raise GraphAPIError(r.status_code, r.text)
+        status = getattr(e.response, 'status_code', 0)
+        text = getattr(e.response, 'text', str(e))
+        raise GraphAPIError(status, text) from e
     items = r.json().get("value", [])
     if items:
         return items[0]["id"]
@@ -36,24 +36,16 @@ def create_folder_if_not_exists(token, user_id, folder_name, parent='root'):
     }
     try:
         r = requests.post(base_url, headers=headers, json=data)
+        r.raise_for_status()
     except requests.RequestException as e:
         logger.exception("Error creando carpeta en OneDrive")
-        raise GraphAPIError(0, str(e)) from e
-    if r.status_code >= 400:
-        raise GraphAPIError(r.status_code, r.text)
+        status = getattr(e.response, 'status_code', 0)
+        text = getattr(e.response, 'text', str(e))
+        raise GraphAPIError(status, text) from e
     return r.json()["id"]
 
 
-def upload_files(nombre, categoria, base_path, files):
-    print('upload_files() llamado')
-    cfg = load_settings().get('onedrive', {})
-    client_id = cfg.get('client_id')
-    client_secret = cfg.get('client_secret')
-    tenant_id = cfg.get('tenant_id')
-    user_id = cfg.get('user_id')
-    if not all([client_id, client_secret, tenant_id, user_id]):
-        raise ValueError('Credenciales de OneDrive incompletas')
-    token = get_access_token(cfg)
+def upload_files(token, user_id, base_path, categoria, nombre, files):
     parent_id = "root"
     for part in base_path.strip("/").split("/"):
         parent_ref = f"items/{parent_id}" if parent_id != "root" else parent_id
@@ -65,6 +57,7 @@ def upload_files(nombre, categoria, base_path, files):
     user_folder = create_folder_if_not_exists(
         token, user_id, nombre, f"items/{cat_id}"
     )
+    logger.info("Carpeta creada en OneDrive: %s/%s/%s", base_path, categoria, nombre)
     file_links = []
     for f in files:
         filename = secure_filename(f.filename)
@@ -74,11 +67,12 @@ def upload_files(nombre, categoria, base_path, files):
         headers = {'Authorization': f'Bearer {token}', 'Content-Type': 'application/octet-stream'}
         try:
             r = requests.put(upload_url, headers=headers, data=content)
+            r.raise_for_status()
         except requests.RequestException as e:
             logger.exception("Error subiendo archivo a OneDrive")
-            raise GraphAPIError(0, str(e)) from e
-        if r.status_code >= 400:
-            raise GraphAPIError(r.status_code, r.text)
+            status = getattr(e.response, 'status_code', 0)
+            text = getattr(e.response, 'text', str(e))
+            raise GraphAPIError(status, text) from e
+        logger.info("Archivo subido: %s", filename)
         file_links.append(r.json()['webUrl'])
-    print('upload_files() completado')
     return f"{base_path}/{categoria}/{nombre}", file_links

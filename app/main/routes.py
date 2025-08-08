@@ -13,7 +13,7 @@ from ..utils import (
 )
 from services.onedrive import upload_files
 from services.mail import send_mail
-from services.graph_auth import GraphAPIError
+from services.graph_auth import GraphAPIError, get_access_token
 
 
 logging.basicConfig(level=logging.INFO)
@@ -25,7 +25,7 @@ main_bp = Blueprint('main', __name__)
 @main_bp.route('/')
 def index():
     setup_ok = is_setup_complete()
-    print(f"is_setup_complete: {setup_ok}")
+    logger.info("is_setup_complete: %s", setup_ok)
     if not setup_ok:
         flash('Debe completar la configuración antes de continuar', 'error')
         return redirect(url_for('admin.settings'))
@@ -37,7 +37,7 @@ def index():
 @main_bp.route('/inscripcion/<key>', methods=['GET', 'POST'])
 def inscripcion(key):
     setup_ok = is_setup_complete()
-    print(f"is_setup_complete: {setup_ok}")
+    logger.info("is_setup_complete: %s", setup_ok)
     if not setup_ok:
         flash('Debe completar la configuración antes de continuar', 'error')
         return redirect(url_for('admin.settings'))
@@ -55,6 +55,7 @@ def inscripcion(key):
     fields = load_text_fields(key)
 
     if request.method == 'POST':
+        logger.info("Inicio de inscripción: %s", key)
         form_values = {}
         nombre = ''
         for field in fields:
@@ -91,53 +92,53 @@ def inscripcion(key):
         cfg = load_settings()
         mail_cfg = cfg.get('mail', {})
         drive_cfg = cfg.get('onedrive', {})
-        if not all([mail_cfg.get('mail_user'), mail_cfg.get('mail_password')]):
-            flash('Credenciales de correo no configuradas', 'error')
-            print('Credenciales SMTP faltantes')
-            return redirect(request.url)
-        if not all(drive_cfg.get(k) for k in ('client_id', 'client_secret', 'tenant_id', 'user_id')):
-            flash('Credenciales de OneDrive incompletas', 'error')
-            print('Credenciales de OneDrive faltantes')
-            return redirect(request.url)
         base_path = cat.get('base_path') or drive_cfg.get('base_path')
-        if not base_path:
-            flash('Ruta de OneDrive no configurada', 'error')
-            print('Ruta de OneDrive no configurada')
+        recipients_cfg = cat.get('notify_emails', '').strip()
+        if not (
+            all([mail_cfg.get('mail_user'), mail_cfg.get('mail_password')])
+            and all(drive_cfg.get(k) for k in ('client_id', 'client_secret', 'tenant_id', 'user_id'))
+            and base_path
+            and recipients_cfg
+        ):
+            flash('Configuración incompleta para esta categoría', 'error')
             return redirect(request.url)
-        recipients = cat.get('notify_emails', '').strip()
-        if not recipients:
-            flash('La categoría no tiene destinatarios configurados', 'error')
-            print('Destinatarios no definidos')
+
+        to_recipients = [r.strip() for r in recipients_cfg.split(',') if r.strip()]
+        if not to_recipients:
+            flash('No hay destinatarios configurados para esta categoría', 'error')
             return redirect(request.url)
 
         try:
-            print('Subiendo archivos a OneDrive...')
+            token = get_access_token(drive_cfg)
+        except GraphAPIError as e:
+            logger.exception("Error obteniendo token de Graph")
+            flash(f"Error obteniendo token de Graph: {e}", 'error')
+            return redirect(url_for('main.index'))
+
+        try:
             folder_path, file_links = upload_files(
-                nombre, key, base_path, uploaded_files
+                token, drive_cfg['user_id'], base_path, key, nombre, uploaded_files
             )
-            print('Archivos subidos.')
             save_submission(key, form_values, file_links)
         except GraphAPIError as e:
             logger.exception("Error al subir archivos a OneDrive")
-            flash(f"Error al subir archivos: {e}", 'error')
-            return redirect(url_for('main.index'))
-        except Exception as e:
-            logger.exception("Error inesperado al subir archivos")
-            flash(f"Error inesperado al subir archivos: {e}", 'error')
+            flash(f"Error subiendo archivo a OneDrive: {e}", 'error')
             return redirect(url_for('main.index'))
 
-        print('Enviando correo...')
-        if send_mail(
-            nombre,
-            cat['name'],
-            form_values,
-            file_links,
-            recipients,
-        ):
-            print('Correo enviado.')
-            flash('Inscripción guardada, archivos subidos y correo enviado', 'success')
-        else:
-            flash('Inscripción guardada pero no se pudo enviar el correo', 'error')
+        try:
+            send_mail(
+                token,
+                drive_cfg['user_id'],
+                nombre,
+                cat['name'],
+                form_values,
+                file_links,
+                to_recipients,
+            )
+            flash('Inscripción completada: archivos subidos y correo enviado', 'success')
+        except GraphAPIError as e:
+            logger.exception("Error enviando correo")
+            flash(f"Archivos subidos pero falló el envío de correo: {e}", 'error')
 
         return redirect(url_for('main.index'))
 
