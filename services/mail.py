@@ -38,6 +38,7 @@ def test_connection(
 
 
 def send_mail(nombre, categoria, fields, file_links, recipients=None):
+    print('send_mail() llamado')
     user, password, host, port = _get_cfg()
     if recipients:
         if isinstance(recipients, str):
@@ -62,6 +63,7 @@ def send_mail(nombre, categoria, fields, file_links, recipients=None):
             server.starttls()
             server.login(user, password)
             server.send_message(msg)
+        print('send_mail() completado')
         return True
     except Exception as e:
         logger.exception("Error enviando correo")

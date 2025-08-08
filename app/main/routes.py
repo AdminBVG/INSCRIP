@@ -24,7 +24,9 @@ main_bp = Blueprint('main', __name__)
 
 @main_bp.route('/')
 def index():
-    if not is_setup_complete():
+    setup_ok = is_setup_complete()
+    print(f"is_setup_complete: {setup_ok}")
+    if not setup_ok:
         flash('Debe completar la configuración antes de continuar', 'error')
         return redirect(url_for('admin.settings'))
     menu = load_menu()
@@ -34,7 +36,9 @@ def index():
 
 @main_bp.route('/inscripcion/<key>', methods=['GET', 'POST'])
 def inscripcion(key):
-    if not is_setup_complete():
+    setup_ok = is_setup_complete()
+    print(f"is_setup_complete: {setup_ok}")
+    if not setup_ok:
         flash('Debe completar la configuración antes de continuar', 'error')
         return redirect(url_for('admin.settings'))
     menu = load_menu()
@@ -85,12 +89,33 @@ def inscripcion(key):
             return redirect(request.url)
 
         cfg = load_settings()
-        base_path = cat.get('base_path') or cfg['onedrive'].get('base_path', 'Inscripciones')
+        mail_cfg = cfg.get('mail', {})
+        drive_cfg = cfg.get('onedrive', {})
+        if not all([mail_cfg.get('mail_user'), mail_cfg.get('mail_password')]):
+            flash('Credenciales de correo no configuradas', 'error')
+            print('Credenciales SMTP faltantes')
+            return redirect(request.url)
+        if not all(drive_cfg.get(k) for k in ('client_id', 'client_secret', 'tenant_id', 'user_id')):
+            flash('Credenciales de OneDrive incompletas', 'error')
+            print('Credenciales de OneDrive faltantes')
+            return redirect(request.url)
+        base_path = cat.get('base_path') or drive_cfg.get('base_path')
+        if not base_path:
+            flash('Ruta de OneDrive no configurada', 'error')
+            print('Ruta de OneDrive no configurada')
+            return redirect(request.url)
+        recipients = cat.get('notify_emails', '').strip()
+        if not recipients:
+            flash('La categoría no tiene destinatarios configurados', 'error')
+            print('Destinatarios no definidos')
+            return redirect(request.url)
 
         try:
+            print('Subiendo archivos a OneDrive...')
             folder_path, file_links = upload_files(
                 nombre, key, base_path, uploaded_files
             )
+            print('Archivos subidos.')
             save_submission(key, form_values, file_links)
         except GraphAPIError as e:
             logger.exception("Error al subir archivos a OneDrive")
@@ -102,13 +127,15 @@ def inscripcion(key):
             return redirect(url_for('main.index'))
 
         try:
+            print('Enviando correo...')
             send_mail(
                 nombre,
                 cat['name'],
                 form_values,
                 file_links,
-                cat.get('notify_emails', ''),
+                recipients,
             )
+            print('Correo enviado.')
         except Exception as e:
             logger.exception("Error enviando correo")
             flash(f"Inscripción guardada pero no se pudo enviar el correo: {e}", 'error')

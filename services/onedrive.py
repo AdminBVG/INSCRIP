@@ -38,6 +38,7 @@ def create_folder_if_not_exists(token, user_id, folder_name, parent='root'):
 
 
 def upload_files(nombre, categoria, base_path, files):
+    print('upload_files() llamado')
     cfg = load_settings().get('onedrive', {})
     client_id = cfg.get('client_id')
     client_secret = cfg.get('client_secret')
@@ -63,4 +64,5 @@ def upload_files(nombre, categoria, base_path, files):
         if r.status_code >= 400:
             raise GraphAPIError(r.status_code, r.text)
         file_links.append(r.json()['webUrl'])
+    print('upload_files() completado')
     return f"{base_path}/{categoria}/{nombre}", file_links
