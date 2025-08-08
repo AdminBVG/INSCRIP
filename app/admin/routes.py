@@ -37,22 +37,68 @@ def _build_tree(items):
 
 @admin_bp.route('/menu', methods=['GET', 'POST'])
 def menu():
-    menu = load_menu()
+    menu = load_menu(include_inactive=True)
     if request.method == 'POST':
-        key = request.form['key']
-        name = request.form['name']
-        parent_key = request.form['parent']
-        base_path = request.form.get('base_path', '')
+        key = request.form['key'].strip()
+        name = request.form['name'].strip()
+        parent_id = request.form.get('parent_id', type=int)
+        base_path = request.form.get('base_path', '').strip()
+        active = bool(request.form.get('active'))
         with SessionLocal() as db:
-            parent = (
-                db.query(Category).filter_by(key=parent_key).first() if parent_key else None
+            parent = db.query(Category).filter_by(id=parent_id).first() if parent_id else None
+            db.add(
+                Category(
+                    key=key,
+                    name=name,
+                    parent=parent,
+                    base_path=base_path,
+                    active=active,
+                )
             )
-            db.add(Category(key=key, name=name, parent=parent, base_path=base_path))
             db.commit()
-        flash('Menú actualizado')
+        flash('Categoría creada')
         return redirect(url_for('admin.menu'))
     tree = _build_tree(menu)
     return render_template('admin_menu.html', menu=tree)
+
+
+@admin_bp.route('/menu/<int:cat_id>/edit', methods=['GET', 'POST'])
+def edit_category(cat_id: int):
+    with SessionLocal() as db:
+        category = db.query(Category).filter_by(id=cat_id).first()
+        if not category:
+            flash('Categoría no encontrada')
+            return redirect(url_for('admin.menu'))
+        if request.method == 'POST':
+            category.key = request.form['key'].strip()
+            category.name = request.form['name'].strip()
+            parent_id = request.form.get('parent_id', type=int)
+            category.parent = (
+                db.query(Category).filter_by(id=parent_id).first() if parent_id else None
+            )
+            category.base_path = request.form.get('base_path', '').strip()
+            category.active = bool(request.form.get('active'))
+            db.commit()
+            flash('Categoría actualizada')
+            return redirect(url_for('admin.menu'))
+        categories = [c for c in load_menu(include_inactive=True) if c['id'] != cat_id]
+        tree = _build_tree(categories)
+        return render_template(
+            'admin_category_edit.html', category=category, menu=tree
+        )
+
+
+@admin_bp.route('/menu/<int:cat_id>/delete', methods=['POST'])
+def delete_category(cat_id: int):
+    with SessionLocal() as db:
+        category = db.query(Category).filter_by(id=cat_id).first()
+        if category:
+            category.active = False
+            db.commit()
+            flash('Categoría desactivada')
+        else:
+            flash('Categoría no encontrada')
+    return redirect(url_for('admin.menu'))
 
 @admin_bp.route('/files', methods=['GET', 'POST'])
 def files():
@@ -159,32 +205,50 @@ def settings():
                 flash(f'Error: {e}')
         elif action == 'save_mail':
             email = request.form.get('mail_user', '')
+            password = request.form.get('mail_password', '')
             if not email or not _validate_microsoft_email(email):
                 flash('El correo debe ser una cuenta de Microsoft')
                 return redirect(url_for('admin.settings'))
+            try:
+                from services.mail import test_connection as mail_test
+
+                mail_test(email, password)
+            except Exception as e:
+                flash(f'Error al verificar correo: {e}')
+                return redirect(url_for('admin.settings'))
             cfg['mail']['mail_user'] = email
-            cfg['mail']['mail_password'] = request.form.get('mail_password', '')
+            cfg['mail']['mail_password'] = password
             cfg['mail']['smtp_host'] = 'smtp.office365.com'
             cfg['mail']['smtp_port'] = 587
-            cfg['mail']['tested'] = False
+            cfg['mail']['tested'] = True
             cfg['mail']['updated_at'] = datetime.now().isoformat()
-            cfg['mail']['tested_at'] = ''
+            cfg['mail']['tested_at'] = datetime.now().isoformat()
             save_settings(cfg)
-            flash('Credenciales de correo guardadas')
+            flash('Credenciales de correo guardadas y verificadas')
         elif action == 'save_onedrive':
             email = request.form.get('user_id', '')
             if not email or not _validate_microsoft_email(email):
                 flash('El correo debe ser una cuenta de Microsoft')
                 return redirect(url_for('admin.settings'))
-            cfg['onedrive']['client_id'] = request.form.get('client_id', '')
-            cfg['onedrive']['client_secret'] = request.form.get('client_secret', '')
-            cfg['onedrive']['tenant_id'] = request.form.get('tenant_id', '')
+            client_id = request.form.get('client_id', '')
+            client_secret = request.form.get('client_secret', '')
+            tenant_id = request.form.get('tenant_id', '')
+            try:
+                from services.onedrive import test_connection as drive_test
+
+                drive_test(client_id, tenant_id, client_secret)
+            except Exception as e:
+                flash(f'Error al verificar OneDrive: {e}')
+                return redirect(url_for('admin.settings'))
+            cfg['onedrive']['client_id'] = client_id
+            cfg['onedrive']['client_secret'] = client_secret
+            cfg['onedrive']['tenant_id'] = tenant_id
             cfg['onedrive']['user_id'] = email
-            cfg['onedrive']['tested'] = False
+            cfg['onedrive']['tested'] = True
             cfg['onedrive']['updated_at'] = datetime.now().isoformat()
-            cfg['onedrive']['tested_at'] = ''
+            cfg['onedrive']['tested_at'] = datetime.now().isoformat()
             save_settings(cfg)
-            flash('Credenciales de OneDrive guardadas')
+            flash('Credenciales de OneDrive guardadas y verificadas')
         elif action == 'test_onedrive':
             try:
                 from services.onedrive import test_connection as drive_test

@@ -16,8 +16,14 @@ def _get_cfg():
     return user, password, host, port
 
 
-def test_connection() -> None:
-    user, password, host, port = _get_cfg()
+def test_connection(
+    user: str | None = None,
+    password: str | None = None,
+    host: str = 'smtp.office365.com',
+    port: int = 587,
+) -> None:
+    if user is None or password is None:
+        user, password, host, port = _get_cfg()
     msg = MIMEText('Prueba de envío de correo.')
     msg['Subject'] = 'Prueba de correo'
     msg['From'] = user
