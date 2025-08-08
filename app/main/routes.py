@@ -8,6 +8,7 @@ from ..utils import (
     load_text_fields,
     is_setup_complete,
     save_submission,
+    load_settings,
 )
 from services.onedrive import upload_files
 from services.mail import send_mail
@@ -78,11 +79,13 @@ def inscripcion(key):
             return redirect(request.url)
 
         try:
+            cfg = load_settings()
+            base_path = cat.get('base_path') or cfg['onedrive'].get('base_path', 'Inscripciones')
             folder_path, file_links = upload_files(
-                nombre, key, cat.get('base_path', 'Inscripciones'), uploaded_files
+                nombre, key, base_path, uploaded_files
             )
             save_submission(key, form_values, file_links)
-            send_mail(nombre, cat['name'], form_values, file_links)
+            send_mail(nombre, cat['name'], form_values, file_links, cat.get('notify_emails', ''))
             flash('Enviado correctamente')
         except Exception as e:
             flash(f'Error: {str(e)}')

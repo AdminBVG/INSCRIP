@@ -10,6 +10,7 @@ class Category(Base):
     key = Column(String, unique=True, nullable=False)
     name = Column(String, nullable=False)
     base_path = Column(String, default='')
+    notify_emails = Column(String, default='')
     active = Column(Boolean, default=True)
     parent_id = Column(Integer, ForeignKey('categories.id'))
     parent = relationship('Category', remote_side=[id], backref='children')

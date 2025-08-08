@@ -43,6 +43,7 @@ def menu():
         name = request.form['name'].strip()
         parent_id = request.form.get('parent_id', type=int)
         base_path = request.form.get('base_path', '').strip()
+        notify_emails = request.form.get('notify_emails', '').strip()
         active = bool(request.form.get('active'))
         with SessionLocal() as db:
             parent = db.query(Category).filter_by(id=parent_id).first() if parent_id else None
@@ -52,6 +53,7 @@ def menu():
                     name=name,
                     parent=parent,
                     base_path=base_path,
+                    notify_emails=notify_emails,
                     active=active,
                 )
             )
@@ -77,6 +79,7 @@ def edit_category(cat_id: int):
                 db.query(Category).filter_by(id=parent_id).first() if parent_id else None
             )
             category.base_path = request.form.get('base_path', '').strip()
+            category.notify_emails = request.form.get('notify_emails', '').strip()
             category.active = bool(request.form.get('active'))
             db.commit()
             flash('Categoría actualizada')
@@ -185,54 +188,60 @@ def settings():
     if request.method == 'POST':
         action = request.form.get('action')
         if action == 'test_mail':
+            email = request.form.get('mail_user', '').strip() or cfg['mail'].get('mail_user', '')
+            password = request.form.get('mail_password', '').strip() or cfg['mail'].get('mail_password', '')
+            host = request.form.get('smtp_host', '').strip() or cfg['mail'].get('smtp_host', 'smtp.office365.com')
+            port = request.form.get('smtp_port', type=int) or cfg['mail'].get('smtp_port', 587)
             try:
-                email = cfg['mail'].get('mail_user', '')
-                password = cfg['mail'].get('mail_password', '')
                 if not email or not password:
                     raise ValueError('Correo no configurado')
                 if not _validate_microsoft_email(email):
                     raise ValueError('El correo debe ser una cuenta de Microsoft')
                 from services.mail import test_connection as mail_test
 
-                mail_test()
-                cfg['mail']['tested'] = True
-                cfg['mail']['tested_at'] = datetime.now().isoformat()
-                save_settings(cfg)
+                mail_test(email, password, host, port)
                 flash('Correo verificado')
             except Exception as e:
-                cfg['mail']['tested'] = False
-                save_settings(cfg)
                 flash(f'Error: {e}')
+            cfg['mail']['mail_user'] = email
+            cfg['mail']['mail_password'] = password
+            cfg['mail']['smtp_host'] = host
+            cfg['mail']['smtp_port'] = port
+            return render_template('admin_settings.html', settings=cfg)
         elif action == 'save_mail':
-            email = request.form.get('mail_user', '')
-            password = request.form.get('mail_password', '')
+            email = request.form.get('mail_user', '').strip()
+            password = request.form.get('mail_password', '').strip()
+            host = request.form.get('smtp_host', '').strip() or 'smtp.office365.com'
+            port = request.form.get('smtp_port', type=int) or 587
             if not email or not _validate_microsoft_email(email):
                 flash('El correo debe ser una cuenta de Microsoft')
                 return redirect(url_for('admin.settings'))
             try:
                 from services.mail import test_connection as mail_test
 
-                mail_test(email, password)
+                mail_test(email, password, host, port)
             except Exception as e:
                 flash(f'Error al verificar correo: {e}')
                 return redirect(url_for('admin.settings'))
             cfg['mail']['mail_user'] = email
             cfg['mail']['mail_password'] = password
-            cfg['mail']['smtp_host'] = 'smtp.office365.com'
-            cfg['mail']['smtp_port'] = 587
+            cfg['mail']['smtp_host'] = host
+            cfg['mail']['smtp_port'] = port
             cfg['mail']['tested'] = True
             cfg['mail']['updated_at'] = datetime.now().isoformat()
             cfg['mail']['tested_at'] = datetime.now().isoformat()
             save_settings(cfg)
             flash('Credenciales de correo guardadas y verificadas')
+            return redirect(url_for('admin.settings'))
         elif action == 'save_onedrive':
-            email = request.form.get('user_id', '')
+            email = request.form.get('user_id', '').strip()
             if not email or not _validate_microsoft_email(email):
                 flash('El correo debe ser una cuenta de Microsoft')
                 return redirect(url_for('admin.settings'))
-            client_id = request.form.get('client_id', '')
-            client_secret = request.form.get('client_secret', '')
-            tenant_id = request.form.get('tenant_id', '')
+            client_id = request.form.get('client_id', '').strip()
+            client_secret = request.form.get('client_secret', '').strip()
+            tenant_id = request.form.get('tenant_id', '').strip()
+            base_path = request.form.get('base_path', '').strip() or 'Inscripciones'
             try:
                 from services.onedrive import test_connection as drive_test
 
@@ -244,28 +253,32 @@ def settings():
             cfg['onedrive']['client_secret'] = client_secret
             cfg['onedrive']['tenant_id'] = tenant_id
             cfg['onedrive']['user_id'] = email
+            cfg['onedrive']['base_path'] = base_path
             cfg['onedrive']['tested'] = True
             cfg['onedrive']['updated_at'] = datetime.now().isoformat()
             cfg['onedrive']['tested_at'] = datetime.now().isoformat()
             save_settings(cfg)
             flash('Credenciales de OneDrive guardadas y verificadas')
+            return redirect(url_for('admin.settings'))
         elif action == 'test_onedrive':
+            client_id = request.form.get('client_id', '').strip() or cfg['onedrive'].get('client_id', '')
+            client_secret = request.form.get('client_secret', '').strip() or cfg['onedrive'].get('client_secret', '')
+            tenant_id = request.form.get('tenant_id', '').strip() or cfg['onedrive'].get('tenant_id', '')
+            user_id = request.form.get('user_id', '').strip() or cfg['onedrive'].get('user_id', '')
+            base_path = request.form.get('base_path', '').strip() or cfg['onedrive'].get('base_path', 'Inscripciones')
             try:
                 from services.onedrive import test_connection as drive_test
 
-                drive_test(
-                    cfg['onedrive']['client_id'],
-                    cfg['onedrive']['tenant_id'],
-                    cfg['onedrive']['client_secret'],
-                )
-                cfg['onedrive']['tested'] = True
-                cfg['onedrive']['tested_at'] = datetime.now().isoformat()
-                save_settings(cfg)
+                drive_test(client_id, tenant_id, client_secret)
                 flash('Conexión OneDrive verificada')
             except Exception as e:
-                cfg['onedrive']['tested'] = False
-                save_settings(cfg)
                 flash(f'Error: {e}')
+            cfg['onedrive']['client_id'] = client_id
+            cfg['onedrive']['client_secret'] = client_secret
+            cfg['onedrive']['tenant_id'] = tenant_id
+            cfg['onedrive']['user_id'] = user_id
+            cfg['onedrive']['base_path'] = base_path
+            return render_template('admin_settings.html', settings=cfg)
         return redirect(url_for('admin.settings'))
     return render_template('admin_settings.html', settings=cfg)
 
