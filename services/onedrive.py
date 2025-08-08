@@ -14,19 +14,26 @@ def test_connection(client_id, tenant_id, client_secret):
 def create_folder_if_not_exists(token, user_id, folder_name, parent='root'):
     headers = {'Authorization': f'Bearer {token}'}
     base_url = f"https://graph.microsoft.com/v1.0/users/{user_id}/drive/{parent}/children"
-    search_url = base_url + f"?$filter=name eq '{folder_name}'"
     try:
-        r = requests.get(search_url, headers=headers)
+        r = requests.get(
+            base_url,
+            headers=headers,
+            params={"$filter": f"name eq '{folder_name}'"},
+        )
     except requests.RequestException as e:
         logger.exception("Error consultando carpeta en OneDrive")
         raise GraphAPIError(0, str(e)) from e
     if r.status_code >= 400:
         raise GraphAPIError(r.status_code, r.text)
-    items = r.json().get('value', [])
+    items = r.json().get("value", [])
     if items:
-        return items[0]['id']
-    headers['Content-Type'] = 'application/json'
-    data = {'name': folder_name, 'folder': {}, '@microsoft.graph.conflictBehavior': 'rename'}
+        return items[0]["id"]
+    headers["Content-Type"] = "application/json"
+    data = {
+        "name": folder_name,
+        "folder": {},
+        "@microsoft.graph.conflictBehavior": "rename",
+    }
     try:
         r = requests.post(base_url, headers=headers, json=data)
     except requests.RequestException as e:
@@ -34,7 +41,7 @@ def create_folder_if_not_exists(token, user_id, folder_name, parent='root'):
         raise GraphAPIError(0, str(e)) from e
     if r.status_code >= 400:
         raise GraphAPIError(r.status_code, r.text)
-    return r.json()['id']
+    return r.json()["id"]
 
 
 def upload_files(nombre, categoria, base_path, files):
@@ -47,12 +54,21 @@ def upload_files(nombre, categoria, base_path, files):
     if not all([client_id, client_secret, tenant_id, user_id]):
         raise ValueError('Credenciales de OneDrive incompletas')
     token = get_access_token(cfg)
-    root_id = create_folder_if_not_exists(token, user_id, base_path)
-    cat_id = create_folder_if_not_exists(token, user_id, categoria, f"items/{root_id}")
-    user_folder = create_folder_if_not_exists(token, user_id, nombre, f"items/{cat_id}")
+    parent_id = "root"
+    for part in base_path.strip("/").split("/"):
+        parent_ref = f"items/{parent_id}" if parent_id != "root" else parent_id
+        parent_id = create_folder_if_not_exists(token, user_id, part, parent_ref)
+    root_id = parent_id
+    cat_id = create_folder_if_not_exists(
+        token, user_id, categoria, f"items/{root_id}"
+    )
+    user_folder = create_folder_if_not_exists(
+        token, user_id, nombre, f"items/{cat_id}"
+    )
     file_links = []
     for f in files:
         filename = secure_filename(f.filename)
+        f.stream.seek(0)
         content = f.read()
         upload_url = f"https://graph.microsoft.com/v1.0/users/{user_id}/drive/items/{user_folder}:/{filename}:/content"
         headers = {'Authorization': f'Bearer {token}', 'Content-Type': 'application/octet-stream'}

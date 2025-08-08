@@ -126,21 +126,18 @@ def inscripcion(key):
             flash(f"Error inesperado al subir archivos: {e}", 'error')
             return redirect(url_for('main.index'))
 
-        try:
-            print('Enviando correo...')
-            send_mail(
-                nombre,
-                cat['name'],
-                form_values,
-                file_links,
-                recipients,
-            )
+        print('Enviando correo...')
+        if send_mail(
+            nombre,
+            cat['name'],
+            form_values,
+            file_links,
+            recipients,
+        ):
             print('Correo enviado.')
-        except Exception as e:
-            logger.exception("Error enviando correo")
-            flash(f"Inscripción guardada pero no se pudo enviar el correo: {e}", 'error')
-        else:
             flash('Inscripción guardada, archivos subidos y correo enviado', 'success')
+        else:
+            flash('Inscripción guardada pero no se pudo enviar el correo', 'error')
 
         return redirect(url_for('main.index'))
 
