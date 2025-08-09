@@ -95,8 +95,11 @@ def inscripcion(key):
         base_path = cat.get('base_path') or drive_cfg.get('base_path')
         recipients_cfg = cat.get('notify_emails', '').strip()
         if not (
-            all([mail_cfg.get('mail_user'), mail_cfg.get('mail_password')])
-            and all(drive_cfg.get(k) for k in ('client_id', 'client_secret', 'tenant_id', 'user_id'))
+            mail_cfg.get('tested')
+            and all(
+                drive_cfg.get(k)
+                for k in ('client_id', 'client_secret', 'tenant_id', 'user_id')
+            )
             and base_path
             and recipients_cfg
         ):

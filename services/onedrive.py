@@ -1,7 +1,7 @@
 import logging
 import requests
 from werkzeug.utils import secure_filename
-from .graph_auth import GraphAPIError
+from .graph_auth import GraphAPIError, get_access_token
 
 logger = logging.getLogger(__name__)
 
