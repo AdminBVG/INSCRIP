@@ -42,5 +42,8 @@ def get_access_token(cfg=None):
         logger.exception("Error obteniendo token de Graph")
         raise GraphAPIError(status, text) from e
     token = response.json().get('access_token')
+    if not token:
+        logger.error("No se recibió el token de acceso")
+        raise GraphAPIError(getattr(response, 'status_code', 0), 'Token no recibido')
     logger.info("Token de Graph obtenido")
     return token
