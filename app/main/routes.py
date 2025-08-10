@@ -16,7 +16,6 @@ from services.mail import send_mail
 from services.graph_auth import GraphAPIError, get_access_token
 
 
-logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 main_bp = Blueprint('main', __name__)
