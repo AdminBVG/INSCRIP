@@ -24,7 +24,6 @@ main_bp = Blueprint('main', __name__)
 @main_bp.route('/')
 def index():
     setup_ok = is_setup_complete()
-    logger.info("is_setup_complete: %s", setup_ok)
     if not setup_ok:
         flash('Debe completar la configuración antes de continuar', 'error')
         return redirect(url_for('admin.settings'))
@@ -36,7 +35,6 @@ def index():
 @main_bp.route('/inscripcion/<key>', methods=['GET', 'POST'])
 def inscripcion(key):
     setup_ok = is_setup_complete()
-    logger.info("is_setup_complete: %s", setup_ok)
     if not setup_ok:
         flash('Debe completar la configuración antes de continuar', 'error')
         return redirect(url_for('admin.settings'))

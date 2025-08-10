@@ -1,0 +1,20 @@
+{% extends 'base.html' %}
+{% block title %}Probar envío de correo{% endblock %}
+{% block content %}
+<h1 class="text-2xl font-bold mb-4">Probar envío de correo</h1>
+<form method="post" class="space-y-4">
+  <div>
+    <label class="block mb-1">Destinatario</label>
+    <input type="email" name="to" required class="border rounded w-full p-2">
+  </div>
+  <div>
+    <label class="block mb-1">Asunto</label>
+    <input name="subject" class="border rounded w-full p-2" value="Prueba de correo">
+  </div>
+  <div>
+    <label class="block mb-1">Mensaje</label>
+    <textarea name="body" rows="4" class="border rounded w-full p-2">Correo de prueba.</textarea>
+  </div>
+  <button type="submit" class="bg-blue-600 text-white px-4 py-2 rounded">Enviar</button>
+</form>
+{% endblock %}
