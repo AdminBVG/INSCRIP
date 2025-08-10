@@ -1,5 +1,13 @@
 from datetime import datetime
-from flask import Blueprint, render_template, request, redirect, url_for, flash
+from flask import (
+    Blueprint,
+    render_template,
+    request,
+    redirect,
+    url_for,
+    flash,
+    current_app,
+)
 
 from ..db import SessionLocal
 from ..models import Category
@@ -205,7 +213,8 @@ def settings():
                 mail_test(email, password, host, port)
                 flash('Correo verificado')
             except Exception as e:
-                flash(f'Error: {e}')
+                current_app.logger.exception("Error probando correo")
+                flash(f'Error probando correo: {e}')
             cfg['mail']['mail_user'] = email
             cfg['mail']['mail_password'] = password
             cfg['mail']['smtp_host'] = host
@@ -224,6 +233,7 @@ def settings():
 
                 mail_test(email, password, host, port)
             except Exception as e:
+                current_app.logger.exception("Error al verificar correo")
                 flash(f'Error al verificar correo: {e}')
                 return redirect(url_for('admin.settings'))
             cfg['mail']['mail_user'] = email
@@ -250,6 +260,7 @@ def settings():
 
                 drive_test(client_id, tenant_id, client_secret)
             except Exception as e:
+                current_app.logger.exception("Error al verificar OneDrive")
                 flash(f'Error al verificar OneDrive: {e}')
                 return redirect(url_for('admin.settings'))
             cfg['onedrive']['client_id'] = client_id
@@ -275,6 +286,7 @@ def settings():
                 drive_test(client_id, tenant_id, client_secret)
                 flash('Conexión OneDrive verificada')
             except Exception as e:
+                current_app.logger.exception("Error probando OneDrive")
                 flash(f'Error: {e}')
             cfg['onedrive']['client_id'] = client_id
             cfg['onedrive']['client_secret'] = client_secret
@@ -300,6 +312,7 @@ def test_mail():
             send_test_email(to, subject, body)
             flash('Correo enviado correctamente')
         except Exception as e:  # pragma: no cover - mostrar al usuario
+            current_app.logger.exception("Error enviando correo de prueba")
             flash(f'Error enviando correo: {e}')
     return render_template('test_mail.html')
 
@@ -319,8 +332,10 @@ def test_onedrive():
             upload_files(token, cfg['user_id'], base_path, 'Test', 'Prueba', [f])
             flash('Archivo de prueba subido correctamente')
         except GraphAPIError as e:
+            current_app.logger.exception("Error subiendo archivo de prueba a OneDrive")
             flash(f'Error subiendo archivo a OneDrive: {e}')
         except Exception as e:  # pragma: no cover - mostrar al usuario
+            current_app.logger.exception("Error en prueba de OneDrive")
             flash(f'Error: {e}')
     return render_template('test_onedrive.html')
 

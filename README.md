@@ -41,6 +41,16 @@ pip install -r requirements.txt
 
 Las variables pueden definirse en el entorno o en un archivo `.env` (no versionado).
 
+## Configuración de categorías y rutas
+1. Ingrese al panel de administración (`/admin`).
+2. Cree o edite una categoría y defina:
+   - **Destinatarios** (`notify_emails`): lista de correos separados por coma.
+   - **Ruta base de OneDrive** (`base_path`): carpeta relativa donde se guardarán los archivos (ej. `Inscripciones`).
+     No utilice rutas absolutas como `C:\Usuarios`.
+3. Guarde los cambios.
+
+La ruta final en OneDrive se construye como `base_path/categoria/nombre`.
+
 ## Inicialización de la base de datos
 ```bash
 python -c "from app.db import init_db; init_db()"
@@ -60,6 +70,12 @@ Usar un servidor WSGI como Gunicorn:
 gunicorn -w 4 -b 0.0.0.0:8000 app:app
 ```
 Configurar un proxy reverso (Nginx) y habilitar HTTPS.
+
+## Troubleshooting
+- Revise los logs generados por Flask para identificar fallos de configuración, ruta de OneDrive o credenciales.
+- Asegúrese de que cada categoría tenga destinatarios configurados y que los archivos cargados tengan extensiones permitidas.
+- Verifique que la ruta base de OneDrive sea relativa y no contenga `:` ni `\`.
+- Puede enviar el formulario con `?ab=A` para subir archivos sin enviar correo o `?ab=B` para enviar correo sin subir archivos.
 
 ## Funcionalidades de Test
 En el menú principal se añadió la opción **Test** con dos herramientas:
