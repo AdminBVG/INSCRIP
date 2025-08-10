@@ -13,6 +13,9 @@ from ..utils import (
     save_file_fields,
     load_submissions,
 )
+from services.mail import send_test_email
+from services.onedrive import upload_files
+from services.graph_auth import get_access_token, GraphAPIError
 
 admin_bp = Blueprint('admin', __name__)
 
@@ -281,6 +284,45 @@ def settings():
             return render_template('admin_settings.html', settings=cfg)
         return redirect(url_for('admin.settings'))
     return render_template('admin_settings.html', settings=cfg)
+
+
+@admin_bp.route('/test/mail', methods=['GET', 'POST'])
+def test_mail():
+    """Form to send a test email using current configuration."""
+    if request.method == 'POST':
+        to = request.form.get('to', '').strip()
+        subject = request.form.get('subject', '').strip() or 'Prueba de correo'
+        body = request.form.get('body', '').strip() or 'Correo de prueba.'
+        if not to:
+            flash('Debe proporcionar un destinatario')
+            return redirect(request.url)
+        try:
+            send_test_email(to, subject, body)
+            flash('Correo enviado correctamente')
+        except Exception as e:  # pragma: no cover - mostrar al usuario
+            flash(f'Error enviando correo: {e}')
+    return render_template('test_mail.html')
+
+
+@admin_bp.route('/test/onedrive', methods=['GET', 'POST'])
+def test_onedrive():
+    """Upload a sample file to verify OneDrive connectivity."""
+    cfg = load_settings().get('onedrive', {})
+    if request.method == 'POST':
+        f = request.files.get('file')
+        if not f or f.filename == '':
+            flash('Debe seleccionar un archivo')
+            return redirect(request.url)
+        try:
+            token = get_access_token(cfg)
+            base_path = cfg.get('base_path', 'Inscripciones')
+            upload_files(token, cfg['user_id'], base_path, 'Test', 'Prueba', [f])
+            flash('Archivo de prueba subido correctamente')
+        except GraphAPIError as e:
+            flash(f'Error subiendo archivo a OneDrive: {e}')
+        except Exception as e:  # pragma: no cover - mostrar al usuario
+            flash(f'Error: {e}')
+    return render_template('test_onedrive.html')
 
 
 @admin_bp.route('/submissions')

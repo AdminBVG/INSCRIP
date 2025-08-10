@@ -17,6 +17,13 @@
         <a href="{{ url_for('admin.files') }}" class="font-semibold hover:underline">Archivos</a>
         <a href="{{ url_for('admin.fields') }}" class="font-semibold hover:underline">Campos</a>
         <a href="{{ url_for('admin.submissions') }}" class="font-semibold hover:underline">Inscripciones</a>
+        <div class="relative inline-block group">
+          <span class="font-semibold hover:underline cursor-pointer">Test</span>
+          <div class="absolute hidden group-hover:block bg-white dark:bg-gray-700 shadow-md mt-2">
+            <a href="{{ url_for('admin.test_mail') }}" class="block px-4 py-2 hover:bg-gray-100 dark:hover:bg-gray-600">Probar envío de correo</a>
+            <a href="{{ url_for('admin.test_onedrive') }}" class="block px-4 py-2 hover:bg-gray-100 dark:hover:bg-gray-600">Probar guardado en OneDrive</a>
+          </div>
+        </div>
       </div>
       <button id="toggleDark" class="px-2 py-1 border rounded">Modo</button>
     </div>

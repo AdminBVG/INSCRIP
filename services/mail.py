@@ -4,7 +4,7 @@ from email.mime.text import MIMEText
 import requests
 
 from app.utils import load_settings
-from .graph_auth import GraphAPIError
+from .graph_auth import GraphAPIError, get_access_token
 
 logger = logging.getLogger(__name__)
 
@@ -36,6 +36,42 @@ def test_connection(
         server.starttls()
         server.login(user, password)
         server.send_message(msg)
+
+
+def send_test_email(to: str, subject: str, body: str) -> None:
+    """Send a test email using Graph API when available, otherwise SMTP."""
+    cfg = load_settings()
+    drive_cfg = cfg.get('onedrive', {})
+    try:
+        if all(drive_cfg.get(k) for k in ('client_id', 'client_secret', 'tenant_id', 'user_id')):
+            token = get_access_token(drive_cfg)
+            url = f"https://graph.microsoft.com/v1.0/users/{drive_cfg['user_id']}/sendMail"
+            headers = {'Authorization': f'Bearer {token}', 'Content-Type': 'application/json'}
+            msg = {
+                'message': {
+                    'subject': subject,
+                    'body': {'contentType': 'Text', 'content': body},
+                    'toRecipients': [{'emailAddress': {'address': to}}],
+                },
+                'saveToSentItems': 'true',
+            }
+            response = requests.post(url, headers=headers, json=msg)
+            response.raise_for_status()
+        else:
+            user, password, host, port = _get_cfg()
+            msg = MIMEText(body)
+            msg['Subject'] = subject
+            msg['From'] = user
+            msg['To'] = to
+            with smtplib.SMTP(host, port) as server:
+                server.starttls()
+                server.login(user, password)
+                server.send_message(msg)
+    except requests.RequestException as e:
+        status = getattr(e.response, 'status_code', 0)
+        text = getattr(e.response, 'text', str(e))
+        logger.exception('Error enviando correo de prueba')
+        raise GraphAPIError(status, text) from e
 
 
 def send_mail(token, user_id, nombre, categoria, fields, file_links, to_recipients, cc_recipients=None):
