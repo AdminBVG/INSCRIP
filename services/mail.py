@@ -69,5 +69,4 @@ def send_mail(token, user_id, nombre, categoria, fields, file_links, to_recipien
         logger.exception("Error enviando correo")
         raise GraphAPIError(status, text) from e
     logger.info("Correo enviado: %s", ", ".join(to_recipients + cc_recipients))
-    return True
 
