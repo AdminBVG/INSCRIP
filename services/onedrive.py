@@ -46,8 +46,9 @@ def create_folder_if_not_exists(token, user_id, folder_name, parent='root'):
 
 
 def upload_files(token, user_id, base_path, categoria, nombre, files):
+    base_path = base_path.strip("/")
     parent_id = "root"
-    for part in base_path.strip("/").split("/"):
+    for part in base_path.split("/"):
         parent_ref = f"items/{parent_id}" if parent_id != "root" else parent_id
         parent_id = create_folder_if_not_exists(token, user_id, part, parent_ref)
     root_id = parent_id
@@ -75,4 +76,5 @@ def upload_files(token, user_id, base_path, categoria, nombre, files):
             raise GraphAPIError(status, text) from e
         logger.info("Archivo subido: %s", filename)
         file_links.append(r.json()['webUrl'])
-    return f"{base_path}/{categoria}/{nombre}", file_links
+    dest_dir = "/".join([base_path, categoria.strip("/"), nombre]).replace("//", "/")
+    return dest_dir, file_links
