@@ -95,13 +95,15 @@ def inscripcion(key):
                 content = f.read()
                 size = len(content)
                 pattern = cat.get('file_pattern', '')
+                storage_name = fcfg.get('storage_name', '').strip()
                 final_name = filename
                 if pattern:
                     now = datetime.utcnow()
                     final_name = pattern
+                    label_value = storage_name or fcfg['label']
                     final_name = final_name.replace('{categoria}', cat['key'])
                     final_name = final_name.replace('{nombre}', nombre)
-                    final_name = final_name.replace('{label}', fcfg['label'])
+                    final_name = final_name.replace('{label}', label_value)
                     final_name = re.sub(
                         r'{fecha(?::([^}]+))?}',
                         lambda m: now.strftime(m.group(1) or '%Y%m%d'),
@@ -115,6 +117,12 @@ def inscripcion(key):
                     final_name = f"{final_name}{ext}"
                     while final_name in used_names:
                         final_name = f"{os.path.splitext(final_name)[0]}-{uuid.uuid4().hex[:4]}{ext}"
+                else:
+                    base = storage_name or os.path.splitext(filename)[0]
+                    base = re.sub(r'[\\/:*?"<>|]', '_', base)
+                    final_name = f"{base}{ext}"
+                    while final_name in used_names:
+                        final_name = f"{base}-{uuid.uuid4().hex[:4]}{ext}"
                 used_names.add(final_name)
                 file_info.append({"name": final_name, "size": size})
                 file_records.append(

@@ -34,6 +34,7 @@ class FileField(Base):
     name = Column(String, nullable=False)
     label = Column(String, nullable=False)
     description = Column(String, default='')
+    storage_name = Column(String, default='')
     required = Column(Boolean, default=False)
     order = Column(Integer, default=0)
     category = relationship('Category', backref='file_fields')

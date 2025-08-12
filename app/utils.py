@@ -51,6 +51,7 @@ def load_file_fields(cat_key: str) -> list:
                 'label': f.label,
                 'description': f.description,
                 'required': f.required,
+                'storage_name': f.storage_name,
             }
             for f in fields
         ]

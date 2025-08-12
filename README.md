@@ -51,6 +51,12 @@ Las variables pueden definirse en el entorno o en un archivo `.env` (no versiona
 
 La ruta final en OneDrive se construye como `base_path/categoria/nombre`.
 
+### Configuración de archivos
+En `/admin/files` puede definirse para cada archivo requerido un **Nombre final**. Este valor se utiliza para renombrar el archivo al almacenarlo y también al reemplazar la variable `{label}` en el patrón de nombres configurado en la categoría.
+
+### Plantillas de correo
+El correo de notificación se genera a partir de una plantilla Jinja ubicada en `templates/emails/inscripcion.html`. La plantilla recibe las variables `nombre`, `categoria`, `fields` y `folder_link`, permitiendo personalizar el contenido del mensaje.
+
 ## Inicialización de la base de datos
 ```bash
 python -c "from app.db import init_db; init_db()"

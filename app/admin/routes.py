@@ -135,6 +135,7 @@ def files():
             label = request.form.get('label', '').strip()
             description = request.form.get('description', '').strip()
             required = bool(request.form.get('required'))
+            storage_name = request.form.get('storage_name', '').strip()
             if not name or not label:
                 flash('Nombre e identificador son obligatorios')
                 return redirect(url_for('admin.files', category=cat))
@@ -143,6 +144,7 @@ def files():
                 'label': label,
                 'description': description,
                 'required': required,
+                'storage_name': storage_name,
             }
             if action == 'add':
                 files_data.append(file_cfg)
