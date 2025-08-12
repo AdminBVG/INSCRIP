@@ -84,11 +84,10 @@ def inscripcion(key):
                 if ext not in allowed_exts:
                     flash(f'Archivo no permitido: {filename}', 'error')
                     return redirect(request.url)
-                f.stream.seek(0, os.SEEK_END)
-                size = f.stream.tell()
-                f.stream.seek(0)
+                content = f.read()
+                size = len(content)
                 file_info.append({"name": filename, "size": size})
-                uploaded_files.append(f)
+                uploaded_files.append({"name": filename, "content": content})
 
         current_app.logger.info("Archivos listos para subir: %s", file_info)
         if not uploaded_files:
@@ -152,21 +151,32 @@ def inscripcion(key):
         test_mode = request.args.get('ab')
         current_app.logger.info("Modo A/B: %s", test_mode)
 
-        file_links = []
+        status = "Éxito"
+        error_detail = ""
+        folder_url = ""
         if test_mode != 'B':
             try:
-                folder_path, file_links = upload_files(
+                folder_url = upload_files(
                     token, drive_cfg['user_id'], dest_dir, uploaded_files
                 )
-                current_app.logger.info("Archivos subidos a: %s", folder_path)
-                save_submission(key, form_values, file_links)
+                current_app.logger.info("Archivos subidos a: %s", folder_url)
             except GraphAPIError as e:
                 current_app.logger.exception("Error al subir archivos a OneDrive")
+                status = "Error"
+                error_detail = f"Error subiendo archivo a OneDrive: {e}"
                 flash(f"Error subiendo archivo a OneDrive: {e}", 'error')
+                save_submission(
+                    key,
+                    form_values,
+                    file_info,
+                    folder_url,
+                    status,
+                    error_detail,
+                    request.remote_addr or "",
+                )
                 return redirect(url_for('main.index'))
         else:
             current_app.logger.info("Modo B: se omite la subida de archivos")
-            save_submission(key, form_values, file_links)
 
         if test_mode != 'A':
             try:
@@ -176,19 +186,34 @@ def inscripcion(key):
                     nombre,
                     cat['name'],
                     form_values,
-                    file_links,
+                    folder_url,
+                    uploaded_files,
                     to_recipients,
                     cc_recipients,
                 )
                 flash('Inscripción completada: correo enviado', 'success')
             except GraphAPIError as e:
                 current_app.logger.exception("Error enviando correo")
+                status = "Error"
+                error_detail = f"Error enviando correo: {e}"
                 if test_mode == 'B':
                     flash(f"Error enviando correo: {e}", 'error')
                 else:
-                    flash(f"Archivos subidos pero falló el envío de correo: {e}", 'error')
+                    flash(
+                        f"Archivos subidos pero falló el envío de correo: {e}", 'error'
+                    )
         else:
             flash('Archivos subidos sin enviar correo (modo A)', 'info')
+
+        save_submission(
+            key,
+            form_values,
+            file_info,
+            folder_url,
+            status,
+            error_detail,
+            request.remote_addr or "",
+        )
 
         return redirect(url_for('main.index'))
 

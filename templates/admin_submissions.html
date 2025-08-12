@@ -17,19 +17,24 @@
   <div class="space-y-4">
     {% for sub in submissions %}
       <div class="border rounded p-2">
-        <h2 class="font-semibold mb-2">{{ sub.category_name }}</h2>
+        <h2 class="font-semibold mb-2">{{ sub.category_name }} - {{ sub.created_at }}</h2>
         <ul class="mb-2">
           {% for label, value in sub.fields.items() %}
             <li><strong>{{ label }}:</strong> {{ value }}</li>
           {% endfor %}
         </ul>
+        {% if sub.folder_url %}
+          <p><strong>Carpeta:</strong> <a href="{{ sub.folder_url }}" class="text-blue-600" target="_blank">{{ sub.folder_url }}</a></p>
+        {% endif %}
         {% if sub.files %}
-          <ul>
-            {% for link in sub.files %}
-              <li><a href="{{ link }}" class="text-blue-600" target="_blank">{{ link }}</a></li>
+          <ul class="mb-2">
+            {% for f in sub.files %}
+              <li>{{ f.name }} ({{ f.size }} bytes)</li>
             {% endfor %}
           </ul>
         {% endif %}
+        <p><strong>Estado:</strong> {{ sub.status }}{% if sub.error %} - {{ sub.error }}{% endif %}</p>
+        {% if sub.user %}<p><strong>Usuario:</strong> {{ sub.user }}</p>{% endif %}
       </div>
     {% endfor %}
   </div>

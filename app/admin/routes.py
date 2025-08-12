@@ -329,7 +329,13 @@ def test_onedrive():
             token = get_access_token(cfg)
             temp_folder = datetime.now().strftime('%Y%m%d%H%M%S')
             dest_path = normalize_path('Test', temp_folder)
-            upload_files(token, cfg['user_id'], dest_path, [f])
+            content = f.read()
+            upload_files(
+                token,
+                cfg['user_id'],
+                dest_path,
+                [{"name": f.filename, "content": content}],
+            )
             flash('Archivo de prueba subido correctamente')
         except GraphAPIError as e:
             current_app.logger.exception("Error subiendo archivo de prueba a OneDrive")
