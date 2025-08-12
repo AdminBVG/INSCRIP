@@ -98,7 +98,11 @@ def inscripcion(key):
         cfg = load_settings()
         mail_cfg = cfg.get('mail', {})
         drive_cfg = cfg.get('onedrive', {})
-        raw_base = cat.get('base_path') or drive_cfg.get('base_path', '')
+        raw_base = cat.get('base_path', '').strip()
+        if not raw_base:
+            current_app.logger.error('Categoría sin ruta base configurada')
+            flash('Categoría sin ruta base configurada', 'error')
+            return redirect(request.url)
         base_path = normalize_path(raw_base)
         recipients_cfg = cat.get('notify_emails', '').strip()
         cc_cfg = cat.get('notify_cc_emails', '').strip()
@@ -108,8 +112,6 @@ def inscripcion(key):
             missing.append('correo')
         if not all(drive_cfg.get(k) for k in ('client_id', 'client_secret', 'tenant_id', 'user_id')):
             missing.append('credenciales de OneDrive')
-        if not base_path:
-            missing.append('ruta base de OneDrive')
         if not recipients_cfg and not cc_cfg:
             missing.append('destinatarios')
         if missing:

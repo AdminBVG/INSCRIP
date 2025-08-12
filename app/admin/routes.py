@@ -257,7 +257,6 @@ def settings():
             client_id = request.form.get('client_id', '').strip()
             client_secret = request.form.get('client_secret', '').strip()
             tenant_id = request.form.get('tenant_id', '').strip()
-            base_path = request.form.get('base_path', '').strip() or 'Inscripciones'
             try:
                 from services.onedrive import test_connection as drive_test
 
@@ -270,7 +269,6 @@ def settings():
             cfg['onedrive']['client_secret'] = client_secret
             cfg['onedrive']['tenant_id'] = tenant_id
             cfg['onedrive']['user_id'] = email
-            cfg['onedrive']['base_path'] = base_path
             cfg['onedrive']['tested'] = True
             cfg['onedrive']['updated_at'] = datetime.now().isoformat()
             cfg['onedrive']['tested_at'] = datetime.now().isoformat()
@@ -282,7 +280,6 @@ def settings():
             client_secret = request.form.get('client_secret', '').strip() or cfg['onedrive'].get('client_secret', '')
             tenant_id = request.form.get('tenant_id', '').strip() or cfg['onedrive'].get('tenant_id', '')
             user_id = request.form.get('user_id', '').strip() or cfg['onedrive'].get('user_id', '')
-            base_path = request.form.get('base_path', '').strip() or cfg['onedrive'].get('base_path', 'Inscripciones')
             try:
                 from services.onedrive import test_connection as drive_test
 
@@ -295,7 +292,6 @@ def settings():
             cfg['onedrive']['client_secret'] = client_secret
             cfg['onedrive']['tenant_id'] = tenant_id
             cfg['onedrive']['user_id'] = user_id
-            cfg['onedrive']['base_path'] = base_path
             return render_template('admin_settings.html', settings=cfg)
         return redirect(url_for('admin.settings'))
     return render_template('admin_settings.html', settings=cfg)
@@ -331,8 +327,8 @@ def test_onedrive():
             return redirect(request.url)
         try:
             token = get_access_token(cfg)
-            base_path = cfg.get('base_path', 'Inscripciones')
-            dest_path = normalize_path(base_path, 'Test', 'Prueba')
+            temp_folder = datetime.now().strftime('%Y%m%d%H%M%S')
+            dest_path = normalize_path('Test', temp_folder)
             upload_files(token, cfg['user_id'], dest_path, [f])
             flash('Archivo de prueba subido correctamente')
         except GraphAPIError as e:
