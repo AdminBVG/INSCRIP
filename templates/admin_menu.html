@@ -68,6 +68,7 @@
         <td class="p-2">{{ 'Sí' if item.active else 'No' }}</td>
         <td class="p-2 space-x-2">
           <a href="{{ url_for('admin.edit_category', cat_id=item.id) }}" class="text-blue-600">Editar</a>
+          <a href="{{ url_for('admin.edit_email_template', cat_id=item.id) }}" class="text-blue-600">Plantilla</a>
           <form action="{{ url_for('admin.delete_category', cat_id=item.id) }}" method="post" class="inline">
             <button class="text-red-600" onclick="return confirm('¿Desactivar categoría?')">Desactivar</button>
           </form>

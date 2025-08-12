@@ -50,5 +50,6 @@
   </div>
   <button type="submit" class="bg-blue-600 text-white px-4 py-2 rounded">Guardar</button>
   <a href="{{ url_for('admin.menu') }}" class="ml-2">Cancelar</a>
+  <a href="{{ url_for('admin.edit_email_template', cat_id=category.id) }}" class="ml-2 text-blue-600">Plantilla de correo</a>
 </form>
 {% endblock %}

@@ -1,0 +1,72 @@
+{% extends 'base.html' %}
+{% block title %}Plantilla de correo{% endblock %}
+{% block content %}
+<h1 class="text-2xl font-bold mb-4">Plantilla de correo - {{ category.name }}</h1>
+<form method="post" class="space-y-4">
+  <div>
+    <label class="block mb-1">Para (To)</label>
+    <input id="to" name="to" value="{{ category.notify_emails }}" class="border rounded w-full p-2">
+  </div>
+  <div>
+    <label class="block mb-1">CC</label>
+    <input id="cc" name="cc" value="{{ category.notify_cc_emails }}" class="border rounded w-full p-2">
+  </div>
+  <div>
+    <label class="block mb-1">BCC</label>
+    <input id="bcc" name="bcc" value="{{ category.notify_bcc_emails }}" class="border rounded w-full p-2">
+  </div>
+  <div>
+    <label class="block mb-1">Asunto</label>
+    <input id="subject" name="subject" value="{{ category.mail_subject_template }}" class="border rounded w-full p-2">
+  </div>
+  <div>
+    <label class="block mb-1">Cuerpo</label>
+    <textarea id="body" name="body" rows="10" class="border rounded w-full p-2">{{ category.mail_body_template }}</textarea>
+  </div>
+  <div>
+    <p class="mb-1">Variables disponibles:</p>
+    {% for v in variables %}
+      <button type="button" class="var-btn bg-gray-200 px-2 py-1 m-1" data-var="{{ v }}">{{ v }}</button>
+    {% endfor %}
+  </div>
+  <div class="space-x-2">
+    <button name="action" value="save" class="bg-blue-600 text-white px-4 py-2 rounded">Guardar</button>
+    <button name="action" value="preview" class="bg-gray-600 text-white px-4 py-2 rounded">Previsualizar</button>
+  </div>
+</form>
+{% if preview %}
+  <div class="mt-6">
+    <h2 class="text-xl font-semibold mb-2">Vista previa</h2>
+    <p><strong>Asunto:</strong> {{ preview.subject }}</p>
+    <div class="border p-2">{{ preview.body|safe }}</div>
+    <form method="post" class="mt-4 space-y-2">
+      <input type="hidden" name="to" value="{{ category.notify_emails }}">
+      <input type="hidden" name="cc" value="{{ category.notify_cc_emails }}">
+      <input type="hidden" name="bcc" value="{{ category.notify_bcc_emails }}">
+      <input type="hidden" name="subject" value="{{ category.mail_subject_template }}">
+      <input type="hidden" name="body" value="{{ category.mail_body_template }}">
+      <div>
+        <label class="block mb-1">Correo para prueba</label>
+        <input name="test_email" class="border rounded w-full p-2">
+      </div>
+      <button name="action" value="send_test" class="bg-green-600 text-white px-4 py-2 rounded">Enviar prueba</button>
+    </form>
+  </div>
+{% endif %}
+<script>
+  document.querySelectorAll('.var-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const text = btn.dataset.var;
+      const active = document.activeElement;
+      if(active && (active.id === 'subject' || active.id === 'body')) {
+        const start = active.selectionStart;
+        const end = active.selectionEnd;
+        const value = active.value;
+        active.value = value.slice(0, start) + text + value.slice(end);
+        active.selectionStart = active.selectionEnd = start + text.length;
+        active.focus();
+      }
+    });
+  });
+</script>
+{% endblock %}
