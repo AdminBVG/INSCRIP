@@ -21,6 +21,7 @@
         <input type="hidden" name="index" value="{{ loop.index0 }}">
         <input type="text" name="label" value="{{ f.label }}" placeholder="Nombre" class="border rounded p-1">
         <input type="text" name="name" value="{{ f.name }}" placeholder="Identificador" class="border rounded p-1">
+        <input type="text" name="storage_name" value="{{ f.storage_name }}" placeholder="Nombre final" class="border rounded p-1">
         <input type="text" name="description" value="{{ f.description }}" placeholder="Descripción" class="border rounded p-1 w-64">
         <label class="flex items-center space-x-1">
           <input type="checkbox" name="required" {% if f.required %}checked{% endif %}>
@@ -37,6 +38,7 @@
       <input type="hidden" name="category" value="{{ selected_cat }}">
       <input type="text" name="label" placeholder="Nombre" class="border rounded p-1">
       <input type="text" name="name" placeholder="Identificador" class="border rounded p-1">
+      <input type="text" name="storage_name" placeholder="Nombre final" class="border rounded p-1">
       <input type="text" name="description" placeholder="Descripción" class="border rounded p-1 w-64">
       <label class="flex items-center space-x-1">
         <input type="checkbox" name="required">

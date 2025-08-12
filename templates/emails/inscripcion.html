@@ -1,0 +1,10 @@
+<p>Se ha recibido una inscripción para <strong>{{ categoria }}</strong>.</p>
+<p><strong>Nombre:</strong> {{ nombre }}</p>
+<ul>
+  {% for label, value in fields.items() %}
+    <li><strong>{{ label }}:</strong> {{ value }}</li>
+  {% endfor %}
+</ul>
+{% if folder_link %}
+<p>Carpeta en OneDrive: <a href="{{ folder_link }}">{{ folder_link }}</a></p>
+{% endif %}

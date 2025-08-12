@@ -3,6 +3,7 @@ import smtplib
 from email.mime.text import MIMEText
 import base64
 import requests
+from flask import render_template
 
 from app.utils import load_settings
 from .graph_auth import GraphAPIError, get_access_token
@@ -85,18 +86,23 @@ def send_mail(
     attachments,
     to_recipients,
     cc_recipients=None,
+    template: str = "emails/inscripcion.html",
 ):
     """Envía un correo usando Microsoft Graph."""
     if cc_recipients is None:
         cc_recipients = []
     url = f"https://graph.microsoft.com/v1.0/users/{user_id}/sendMail"
-    headers = {'Authorization': f'Bearer {token}', 'Content-Type': 'application/json'}
-    body = "<p>Se ha recibido una inscripción con los siguientes datos:</p><ul>"
-    for label, value in fields.items():
-        body += f"<li><strong>{label}:</strong> {value}</li>"
-    body += "</ul>"
-    if folder_link:
-        body += f"<p>Carpeta en OneDrive: <a href='{folder_link}'>{folder_link}</a></p>"
+    headers = {
+        "Authorization": f"Bearer {token}",
+        "Content-Type": "application/json",
+    }
+    body = render_template(
+        template,
+        nombre=nombre,
+        categoria=categoria,
+        fields=fields,
+        folder_link=folder_link,
+    )
 
     msg = {
         "message": {
