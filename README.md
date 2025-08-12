@@ -44,9 +44,10 @@ Las variables pueden definirse en el entorno o en un archivo `.env` (no versiona
 ## Configuración de categorías y rutas
 1. Ingrese al panel de administración (`/admin`).
 2. Cree o edite una categoría y defina:
-   - **Destinatarios** (`notify_emails`): lista de correos separados por coma.
+   - **Destinatarios** (`notify_emails`, `notify_cc_emails`, `notify_bcc_emails`): listas de correos separados por coma.
    - **Ruta base de OneDrive** (`base_path`): carpeta relativa donde se guardarán los archivos (ej. `Inscripciones`).
      No utilice rutas absolutas como `C:\Usuarios`.
+   - **Plantilla de correo**: asunto y cuerpo personalizados con variables dinámicas.
 3. Guarde los cambios.
 
 La ruta final en OneDrive se construye como `base_path/categoria/nombre`.
@@ -55,7 +56,7 @@ La ruta final en OneDrive se construye como `base_path/categoria/nombre`.
 En `/admin/files` puede definirse para cada archivo requerido un **Nombre final**. Este valor se utiliza para renombrar el archivo al almacenarlo y también al reemplazar la variable `{label}` en el patrón de nombres configurado en la categoría.
 
 ### Plantillas de correo
-El correo de notificación se genera a partir de una plantilla Jinja ubicada en `templates/emails/inscripcion.html`. La plantilla recibe las variables `nombre`, `categoria`, `fields` y `folder_link`, permitiendo personalizar el contenido del mensaje.
+Cada categoría puede tener su propia plantilla de correo editable desde la interfaz de administración. El administrador puede definir los destinatarios To/CC/BCC, el asunto y el cuerpo (HTML o Markdown simple) e insertar variables dinámicas mediante botones. También es posible previsualizar y enviar un correo de prueba antes de guardar.
 
 ## Inicialización de la base de datos
 ```bash

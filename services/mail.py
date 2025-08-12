@@ -40,7 +40,7 @@ def test_connection(
         server.send_message(msg)
 
 
-def send_test_email(to: str, subject: str, body: str) -> None:
+def send_test_email(to: str, subject: str, body: str, content_type: str = 'Text') -> None:
     """Send a test email using Graph API when available, otherwise SMTP."""
     cfg = load_settings()
     drive_cfg = cfg.get('onedrive', {})
@@ -52,7 +52,7 @@ def send_test_email(to: str, subject: str, body: str) -> None:
             msg = {
                 'message': {
                     'subject': subject,
-                    'body': {'contentType': 'Text', 'content': body},
+                    'body': {'contentType': content_type, 'content': body},
                     'toRecipients': [{'emailAddress': {'address': to}}],
                 },
                 'saveToSentItems': 'true',
@@ -61,7 +61,7 @@ def send_test_email(to: str, subject: str, body: str) -> None:
             response.raise_for_status()
         else:
             user, password, host, port = _get_cfg()
-            msg = MIMEText(body)
+            msg = MIMEText(body, 'html' if content_type.upper() == 'HTML' else 'plain')
             msg['Subject'] = subject
             msg['From'] = user
             msg['To'] = to
@@ -74,6 +74,60 @@ def send_test_email(to: str, subject: str, body: str) -> None:
         text = getattr(e.response, 'text', str(e))
         logger.exception('Error enviando correo de prueba')
         raise GraphAPIError(status, text) from e
+
+
+def send_mail_custom(
+    token,
+    user_id,
+    subject,
+    body,
+    to_recipients,
+    cc_recipients=None,
+    bcc_recipients=None,
+    attachments=None,
+):
+    """Envía un correo con asunto y cuerpo personalizados usando Microsoft Graph."""
+    if cc_recipients is None:
+        cc_recipients = []
+    if bcc_recipients is None:
+        bcc_recipients = []
+    if attachments is None:
+        attachments = []
+
+    url = f"https://graph.microsoft.com/v1.0/users/{user_id}/sendMail"
+    headers = {
+        'Authorization': f'Bearer {token}',
+        'Content-Type': 'application/json',
+    }
+    msg = {
+        'message': {
+            'subject': subject,
+            'body': {'contentType': 'HTML', 'content': body},
+            'toRecipients': [{'emailAddress': {'address': e}} for e in to_recipients],
+            'ccRecipients': [{'emailAddress': {'address': e}} for e in cc_recipients],
+            'bccRecipients': [{'emailAddress': {'address': e}} for e in bcc_recipients],
+        },
+        'saveToSentItems': 'true',
+    }
+    if attachments:
+        msg['message']['attachments'] = [
+            {
+                '@odata.type': '#microsoft.graph.fileAttachment',
+                'name': a['name'],
+                'contentBytes': base64.b64encode(a['content']).decode('utf-8'),
+            }
+            for a in attachments
+        ]
+
+    try:
+        response = requests.post(url, headers=headers, json=msg)
+        response.raise_for_status()
+    except requests.RequestException as e:
+        status = getattr(e.response, 'status_code', 0)
+        text = getattr(e.response, 'text', str(e))
+        logger.exception('Error enviando correo')
+        raise GraphAPIError(status, text) from e
+    logger.info('Correo enviado: %s', ', '.join(to_recipients + cc_recipients + bcc_recipients))
 
 
 def send_mail(

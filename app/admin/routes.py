@@ -26,6 +26,7 @@ from ..utils import (
 from services.mail import send_test_email
 from services.onedrive import upload_files, normalize_path
 from services.graph_auth import get_access_token, GraphAPIError
+from services.template_renderer import render_text, normalize_var
 
 admin_bp = Blueprint('admin', __name__)
 
@@ -121,6 +122,68 @@ def delete_category(cat_id: int):
         else:
             flash('Categoría no encontrada')
     return redirect(url_for('admin.menu'))
+
+
+@admin_bp.route('/menu/<int:cat_id>/email', methods=['GET', 'POST'])
+def edit_email_template(cat_id: int):
+    """Edit email template for a category."""
+    with SessionLocal() as db:
+        category = db.query(Category).filter_by(id=cat_id).first()
+        if not category:
+            flash('Categoría no encontrada')
+            return redirect(url_for('admin.menu'))
+        fields = load_text_fields(category.key)
+        dyn_vars = [f'[{normalize_var(f["name"])}]' for f in fields]
+        std_vars = [
+            '[CATEGORIA]',
+            '[CATEGORIA_KEY]',
+            '[CARPETA_URL]',
+            '[FECHA]',
+            '[ARCHIVOS_LISTA]',
+            '[USUARIO_ADMIN]',
+        ]
+        variables = std_vars + dyn_vars
+        preview = None
+        if request.method == 'POST':
+            action = request.form.get('action', 'save')
+            category.notify_emails = request.form.get('to', '').strip()
+            category.notify_cc_emails = request.form.get('cc', '').strip()
+            category.notify_bcc_emails = request.form.get('bcc', '').strip()
+            category.mail_subject_template = request.form.get('subject', '')
+            category.mail_body_template = request.form.get('body', '')
+            db.commit()
+            vars_map = {
+                'CATEGORIA': category.name,
+                'CATEGORIA_KEY': category.key,
+                'CARPETA_URL': 'https://ejemplo.com/carpeta',
+                'ARCHIVOS_LISTA': '<ul><li>archivo.pdf (10 KB)</li></ul>',
+                'USUARIO_ADMIN': 'Admin',
+            }
+            for f in fields:
+                vars_map[normalize_var(f['name'])] = f['label'] + ' ejemplo'
+            rendered_subject = render_text(category.mail_subject_template, vars_map)
+            rendered_body = render_text(category.mail_body_template, vars_map)
+            preview = {'subject': rendered_subject, 'body': rendered_body}
+            if action == 'send_test':
+                test_email = request.form.get('test_email', '').strip()
+                if not test_email:
+                    flash('Debe proporcionar un correo de prueba')
+                else:
+                    try:
+                        send_test_email(test_email, rendered_subject, rendered_body, 'HTML')
+                        flash('Correo de prueba enviado')
+                    except Exception as e:
+                        current_app.logger.exception('Error enviando correo de prueba')
+                        flash(f'Error enviando correo: {e}')
+            elif action == 'save':
+                flash('Plantilla guardada')
+                return redirect(url_for('admin.edit_email_template', cat_id=cat_id))
+        return render_template(
+            'admin_mail_template.html',
+            category=category,
+            variables=variables,
+            preview=preview,
+        )
 
 @admin_bp.route('/files', methods=['GET', 'POST'])
 def files():

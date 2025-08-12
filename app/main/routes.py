@@ -14,8 +14,9 @@ from ..utils import (
     save_log_entry,
 )
 from services.onedrive import upload_files, normalize_path
-from services.mail import send_mail
+from services.mail import send_mail_custom
 from services.graph_auth import GraphAPIError, get_access_token
+from services.template_renderer import normalize_var, render_text
 
 main_bp = Blueprint('main', __name__)
 
@@ -60,6 +61,7 @@ def inscripcion(key):
             {k: v.filename for k, v in request.files.items()},
         )
         form_values = {}
+        dynamic_vars = {}
         nombre = ''
         solicitante_email = ''
         for field in fields:
@@ -68,6 +70,7 @@ def inscripcion(key):
                 flash(f"El campo {field['label']} es obligatorio", 'error')
                 return redirect(request.url)
             form_values[field['label']] = value
+            dynamic_vars[normalize_var(field['name'])] = value
             if field['name'] == 'nombre':
                 nombre = value
             if field['name'] == 'email':
@@ -134,6 +137,9 @@ def inscripcion(key):
                 )
                 uploaded_files.append({"name": final_name, "content": content})
 
+        archivos_html = '<ul>' + ''.join(
+            f"<li>{r['nombre_final']} ({r['size_bytes']} bytes)</li>" for r in file_records
+        ) + '</ul>'
         current_app.logger.info("Archivos listos para subir: %s", file_info)
         if not uploaded_files:
             flash('Debe subir al menos un archivo', 'error')
@@ -150,13 +156,14 @@ def inscripcion(key):
         base_path = normalize_path(raw_base)
         recipients_cfg = cat.get('notify_emails', '').strip()
         cc_cfg = cat.get('notify_cc_emails', '').strip()
+        bcc_cfg = cat.get('notify_bcc_emails', '').strip()
 
         missing = []
         if not mail_cfg.get('tested'):
             missing.append('correo')
         if not all(drive_cfg.get(k) for k in ('client_id', 'client_secret', 'tenant_id', 'user_id')):
             missing.append('credenciales de OneDrive')
-        if not recipients_cfg and not cc_cfg:
+        if not recipients_cfg and not cc_cfg and not bcc_cfg:
             missing.append('destinatarios')
         if missing:
             msg = ", ".join(missing)
@@ -178,11 +185,12 @@ def inscripcion(key):
 
         to_recipients = [r.strip() for r in recipients_cfg.split(',') if r.strip()]
         cc_recipients = [r.strip() for r in cc_cfg.split(',') if r.strip()]
-        if not to_recipients and not cc_recipients:
+        bcc_recipients = [r.strip() for r in bcc_cfg.split(',') if r.strip()]
+        if not to_recipients and not cc_recipients and not bcc_recipients:
             flash('No hay destinatarios configurados para esta categoría', 'error')
             return redirect(request.url)
         current_app.logger.info(
-            "Destinatarios: to=%s cc=%s", to_recipients, cc_recipients
+            "Destinatarios: to=%s cc=%s bcc=%s", to_recipients, cc_recipients, bcc_recipients
         )
 
         try:
@@ -229,17 +237,38 @@ def inscripcion(key):
             current_app.logger.info("Modo B: se omite la subida de archivos")
 
         if test_mode != 'A':
+            vars_map = {
+                'CATEGORIA': cat['name'],
+                'CATEGORIA_KEY': key,
+                'CARPETA_URL': folder_url,
+                'ARCHIVOS_LISTA': archivos_html,
+                'USUARIO_ADMIN': '',
+            }
+            vars_map.update(dynamic_vars)
+            subject_template = cat.get('mail_subject_template', '')
+            body_template = cat.get('mail_body_template', '')
+            if subject_template or body_template:
+                subject = render_text(subject_template, vars_map)
+                body = render_text(body_template, vars_map)
+            else:
+                subject = f"Inscripción recibida: {nombre} - {cat['name']}"
+                body = render_template(
+                    'emails/inscripcion.html',
+                    nombre=nombre,
+                    categoria=cat['name'],
+                    fields=form_values,
+                    folder_link=folder_url,
+                )
             try:
-                send_mail(
+                send_mail_custom(
                     token,
                     drive_cfg['user_id'],
-                    nombre,
-                    cat['name'],
-                    form_values,
-                    folder_url,
-                    uploaded_files,
+                    subject,
+                    body,
                     to_recipients,
                     cc_recipients,
+                    bcc_recipients,
+                    uploaded_files,
                 )
                 flash('Inscripción completada: correo enviado', 'success')
             except GraphAPIError as e:

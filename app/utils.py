@@ -27,6 +27,9 @@ def load_menu(include_inactive: bool = False):
                     'base_path': c.base_path,
                     'notify_emails': c.notify_emails,
                     'notify_cc_emails': c.notify_cc_emails,
+                    'notify_bcc_emails': c.notify_bcc_emails,
+                    'mail_subject_template': c.mail_subject_template,
+                    'mail_body_template': c.mail_body_template,
                     'file_pattern': c.file_pattern,
                     'active': c.active,
                 }
