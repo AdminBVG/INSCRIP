@@ -1,6 +1,9 @@
 import logging
+from pathlib import PurePosixPath
+
 import requests
 from werkzeug.utils import secure_filename
+
 from .graph_auth import GraphAPIError, get_access_token
 
 logger = logging.getLogger(__name__)
@@ -8,6 +11,21 @@ logger = logging.getLogger(__name__)
 
 def test_connection(client_id, tenant_id, client_secret):
     get_access_token({'client_id': client_id, 'tenant_id': tenant_id, 'client_secret': client_secret})
+
+
+def normalize_path(*segments: str) -> str:
+    """Return a normalized POSIX path without leading/trailing slashes.
+
+    Backslashes are converted to forward slashes and consecutive separators or
+    surrounding spaces are removed. When all segments are empty an empty string
+    is returned.
+    """
+    joined = "/".join(
+        s.replace("\\", "/").strip() for s in segments if s and s.strip()
+    )
+    if not joined:
+        return ""
+    return str(PurePosixPath(joined)).strip("/")
 
 
 def create_folder_if_not_exists(token, user_id, folder_name, parent='root'):
@@ -45,27 +63,29 @@ def create_folder_if_not_exists(token, user_id, folder_name, parent='root'):
     return r.json()["id"]
 
 
-def upload_files(token, user_id, base_path, categoria, nombre, files):
-    base_path = base_path.strip("/")
+def upload_files(token, user_id, dest_path, files):
+    """Upload files to the given path in OneDrive.
+
+    The path must be normalized before being passed to this function.
+    """
+    dest_path = normalize_path(dest_path)
+    logger.info("Carpeta destino OneDrive: %s", dest_path)
     parent_id = "root"
-    for part in base_path.split("/"):
+    for part in dest_path.split("/"):
         parent_ref = f"items/{parent_id}" if parent_id != "root" else parent_id
         parent_id = create_folder_if_not_exists(token, user_id, part, parent_ref)
-    root_id = parent_id
-    cat_id = create_folder_if_not_exists(
-        token, user_id, categoria, f"items/{root_id}"
-    )
-    user_folder = create_folder_if_not_exists(
-        token, user_id, nombre, f"items/{cat_id}"
-    )
-    logger.info("Carpeta creada en OneDrive: %s/%s/%s", base_path, categoria, nombre)
     file_links = []
     for f in files:
         filename = secure_filename(f.filename)
         f.stream.seek(0)
         content = f.read()
-        upload_url = f"https://graph.microsoft.com/v1.0/users/{user_id}/drive/items/{user_folder}:/{filename}:/content"
-        headers = {'Authorization': f'Bearer {token}', 'Content-Type': 'application/octet-stream'}
+        upload_url = (
+            f"https://graph.microsoft.com/v1.0/users/{user_id}/drive/items/{parent_id}:/{filename}:/content"
+        )
+        headers = {
+            'Authorization': f'Bearer {token}',
+            'Content-Type': 'application/octet-stream',
+        }
         try:
             r = requests.put(upload_url, headers=headers, data=content)
             r.raise_for_status()
@@ -76,5 +96,4 @@ def upload_files(token, user_id, base_path, categoria, nombre, files):
             raise GraphAPIError(status, text) from e
         logger.info("Archivo subido: %s", filename)
         file_links.append(r.json()['webUrl'])
-    dest_dir = "/".join([base_path, categoria.strip("/"), nombre]).replace("//", "/")
-    return dest_dir, file_links
+    return dest_path, file_links

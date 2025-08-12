@@ -25,6 +25,7 @@ def load_menu(include_inactive: bool = False):
                     'parent_id': c.parent_id,
                     'base_path': c.base_path,
                     'notify_emails': c.notify_emails,
+                    'notify_cc_emails': c.notify_cc_emails,
                     'active': c.active,
                 }
             )

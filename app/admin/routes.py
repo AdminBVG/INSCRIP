@@ -22,7 +22,7 @@ from ..utils import (
     load_submissions,
 )
 from services.mail import send_test_email
-from services.onedrive import upload_files
+from services.onedrive import upload_files, normalize_path
 from services.graph_auth import get_access_token, GraphAPIError
 
 admin_bp = Blueprint('admin', __name__)
@@ -55,6 +55,7 @@ def menu():
         parent_id = request.form.get('parent_id', type=int)
         base_path = request.form.get('base_path', '').strip()
         notify_emails = request.form.get('notify_emails', '').strip()
+        notify_cc_emails = request.form.get('notify_cc_emails', '').strip()
         active = bool(request.form.get('active'))
         with SessionLocal() as db:
             parent = db.query(Category).filter_by(id=parent_id).first() if parent_id else None
@@ -65,6 +66,7 @@ def menu():
                     parent=parent,
                     base_path=base_path,
                     notify_emails=notify_emails,
+                    notify_cc_emails=notify_cc_emails,
                     active=active,
                 )
             )
@@ -91,6 +93,7 @@ def edit_category(cat_id: int):
             )
             category.base_path = request.form.get('base_path', '').strip()
             category.notify_emails = request.form.get('notify_emails', '').strip()
+            category.notify_cc_emails = request.form.get('notify_cc_emails', '').strip()
             category.active = bool(request.form.get('active'))
             db.commit()
             flash('Categoría actualizada')
@@ -329,7 +332,8 @@ def test_onedrive():
         try:
             token = get_access_token(cfg)
             base_path = cfg.get('base_path', 'Inscripciones')
-            upload_files(token, cfg['user_id'], base_path, 'Test', 'Prueba', [f])
+            dest_path = normalize_path(base_path, 'Test', 'Prueba')
+            upload_files(token, cfg['user_id'], dest_path, [f])
             flash('Archivo de prueba subido correctamente')
         except GraphAPIError as e:
             current_app.logger.exception("Error subiendo archivo de prueba a OneDrive")
