@@ -10,7 +10,7 @@ from ..utils import (
     save_submission,
     load_settings,
 )
-from services.onedrive import upload_files
+from services.onedrive import upload_files, normalize_path
 from services.mail import send_mail
 from services.graph_auth import GraphAPIError, get_access_token
 
@@ -98,8 +98,10 @@ def inscripcion(key):
         cfg = load_settings()
         mail_cfg = cfg.get('mail', {})
         drive_cfg = cfg.get('onedrive', {})
-        base_path = (cat.get('base_path') or drive_cfg.get('base_path', '')).strip('/')
+        raw_base = cat.get('base_path') or drive_cfg.get('base_path', '')
+        base_path = normalize_path(raw_base)
         recipients_cfg = cat.get('notify_emails', '').strip()
+        cc_cfg = cat.get('notify_cc_emails', '').strip()
 
         missing = []
         if not mail_cfg.get('tested'):
@@ -108,7 +110,7 @@ def inscripcion(key):
             missing.append('credenciales de OneDrive')
         if not base_path:
             missing.append('ruta base de OneDrive')
-        if not recipients_cfg:
+        if not recipients_cfg and not cc_cfg:
             missing.append('destinatarios')
         if missing:
             msg = ", ".join(missing)
@@ -116,7 +118,12 @@ def inscripcion(key):
             flash(f"Configuración incompleta: falta {msg}", 'error')
             return redirect(request.url)
 
-        dest_dir = "/".join([base_path, key.strip("/"), nombre]).replace("//", "/")
+        parts = base_path.split('/')
+        if not parts or parts[-1].lower() != key.lower():
+            cat_path = normalize_path(base_path, key)
+        else:
+            cat_path = base_path
+        dest_dir = normalize_path(cat_path, nombre)
         if ':' in dest_dir or '\\' in dest_dir:
             current_app.logger.error("Ruta de OneDrive no válida: %s", dest_dir)
             flash(f"Ruta de OneDrive no válida: {dest_dir}", 'error')
@@ -124,10 +131,13 @@ def inscripcion(key):
         current_app.logger.info("Ruta de OneDrive final: %s", dest_dir)
 
         to_recipients = [r.strip() for r in recipients_cfg.split(',') if r.strip()]
-        if not to_recipients:
+        cc_recipients = [r.strip() for r in cc_cfg.split(',') if r.strip()]
+        if not to_recipients and not cc_recipients:
             flash('No hay destinatarios configurados para esta categoría', 'error')
             return redirect(request.url)
-        current_app.logger.info("Destinatarios: %s", to_recipients)
+        current_app.logger.info(
+            "Destinatarios: to=%s cc=%s", to_recipients, cc_recipients
+        )
 
         try:
             token = get_access_token(drive_cfg)
@@ -144,7 +154,7 @@ def inscripcion(key):
         if test_mode != 'B':
             try:
                 folder_path, file_links = upload_files(
-                    token, drive_cfg['user_id'], base_path, key, nombre, uploaded_files
+                    token, drive_cfg['user_id'], dest_dir, uploaded_files
                 )
                 current_app.logger.info("Archivos subidos a: %s", folder_path)
                 save_submission(key, form_values, file_links)
@@ -166,6 +176,7 @@ def inscripcion(key):
                     form_values,
                     file_links,
                     to_recipients,
+                    cc_recipients,
                 )
                 flash('Inscripción completada: correo enviado', 'success')
             except GraphAPIError as e:
