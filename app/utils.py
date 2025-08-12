@@ -98,7 +98,15 @@ def save_text_fields(cat_key: str, fields: list) -> None:
         db.commit()
 
 
-def save_submission(cat_key: str, fields: dict, files: list) -> None:
+def save_submission(
+    cat_key: str,
+    fields: dict,
+    files: list,
+    folder_url: str,
+    status: str,
+    error: str = "",
+    user: str = "",
+) -> None:
     with SessionLocal() as db:
         cat = db.query(Category).filter_by(key=cat_key).first()
         db.add(
@@ -106,6 +114,10 @@ def save_submission(cat_key: str, fields: dict, files: list) -> None:
                 category_id=cat.id if cat else None,
                 fields=fields,
                 files=files,
+                folder_url=folder_url,
+                status=status,
+                error=error,
+                user=user,
                 created_at=datetime.utcnow(),
             )
         )
@@ -120,7 +132,7 @@ def load_submissions(cat_key: str = '') -> list:
             if not cat:
                 return []
             query = query.filter_by(category_id=cat.id)
-        subs = query.all()
+        subs = query.order_by(Submission.created_at.desc()).all()
         result = []
         for s in subs:
             result.append(
@@ -128,6 +140,11 @@ def load_submissions(cat_key: str = '') -> list:
                     'category': s.category.key if s.category else '',
                     'fields': s.fields,
                     'files': s.files,
+                    'folder_url': s.folder_url,
+                    'status': s.status,
+                    'error': s.error,
+                    'user': s.user,
+                    'created_at': s.created_at.isoformat() if s.created_at else '',
                 }
             )
         return result

@@ -1,6 +1,7 @@
 import logging
 import smtplib
 from email.mime.text import MIMEText
+import base64
 import requests
 
 from app.utils import load_settings
@@ -74,7 +75,17 @@ def send_test_email(to: str, subject: str, body: str) -> None:
         raise GraphAPIError(status, text) from e
 
 
-def send_mail(token, user_id, nombre, categoria, fields, file_links, to_recipients, cc_recipients=None):
+def send_mail(
+    token,
+    user_id,
+    nombre,
+    categoria,
+    fields,
+    folder_link,
+    attachments,
+    to_recipients,
+    cc_recipients=None,
+):
     """Envía un correo usando Microsoft Graph."""
     if cc_recipients is None:
         cc_recipients = []
@@ -83,10 +94,10 @@ def send_mail(token, user_id, nombre, categoria, fields, file_links, to_recipien
     body = "<p>Se ha recibido una inscripción con los siguientes datos:</p><ul>"
     for label, value in fields.items():
         body += f"<li><strong>{label}:</strong> {value}</li>"
-    body += "</ul><p>Archivos:</p><ul>"
-    for link in file_links:
-        body += f"<li><a href='{link}'>{link}</a></li>"
     body += "</ul>"
+    if folder_link:
+        body += f"<p>Carpeta en OneDrive: <a href='{folder_link}'>{folder_link}</a></p>"
+
     msg = {
         "message": {
             "subject": f"Inscripción recibida: {nombre} - {categoria}",
@@ -96,6 +107,17 @@ def send_mail(token, user_id, nombre, categoria, fields, file_links, to_recipien
         },
         "saveToSentItems": "true",
     }
+
+    if attachments:
+        msg["message"]["attachments"] = [
+            {
+                "@odata.type": "#microsoft.graph.fileAttachment",
+                "name": a["name"],
+                "contentBytes": base64.b64encode(a["content"]).decode("utf-8"),
+            }
+            for a in attachments
+        ]
+
     try:
         response = requests.post(url, headers=headers, json=msg)
         response.raise_for_status()

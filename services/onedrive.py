@@ -63,10 +63,26 @@ def create_folder_if_not_exists(token, user_id, folder_name, parent='root'):
     return r.json()["id"]
 
 
+def _get_folder_url(token: str, user_id: str, folder_id: str) -> str:
+    """Return the web URL for the given folder id."""
+    headers = {'Authorization': f'Bearer {token}'}
+    url = f"https://graph.microsoft.com/v1.0/users/{user_id}/drive/items/{folder_id}"
+    try:
+        r = requests.get(url, headers=headers, params={'$select': 'webUrl'})
+        r.raise_for_status()
+    except requests.RequestException as e:
+        logger.exception("Error obteniendo URL de carpeta en OneDrive")
+        status = getattr(e.response, 'status_code', 0)
+        text = getattr(e.response, 'text', str(e))
+        raise GraphAPIError(status, text) from e
+    return r.json().get('webUrl', '')
+
+
 def upload_files(token, user_id, dest_path, files):
     """Upload files to the given path in OneDrive.
 
     The path must be normalized before being passed to this function.
+    Returns the web URL of the created folder.
     """
     dest_path = normalize_path(dest_path)
     logger.info("Carpeta destino OneDrive: %s", dest_path)
@@ -74,11 +90,12 @@ def upload_files(token, user_id, dest_path, files):
     for part in dest_path.split("/"):
         parent_ref = f"items/{parent_id}" if parent_id != "root" else parent_id
         parent_id = create_folder_if_not_exists(token, user_id, part, parent_ref)
-    file_links = []
+
+    folder_url = _get_folder_url(token, user_id, parent_id)
+
     for f in files:
-        filename = secure_filename(f.filename)
-        f.stream.seek(0)
-        content = f.read()
+        filename = secure_filename(f['name'])
+        content = f['content']
         upload_url = (
             f"https://graph.microsoft.com/v1.0/users/{user_id}/drive/items/{parent_id}:/{filename}:/content"
         )
@@ -95,5 +112,5 @@ def upload_files(token, user_id, dest_path, files):
             text = getattr(e.response, 'text', str(e))
             raise GraphAPIError(status, text) from e
         logger.info("Archivo subido: %s", filename)
-        file_links.append(r.json()['webUrl'])
-    return dest_path, file_links
+
+    return folder_url
