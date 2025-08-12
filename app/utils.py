@@ -151,7 +151,6 @@ def load_settings():
             "client_secret": "",
             "tenant_id": "",
             "user_id": "",
-            "base_path": "Inscripciones",
             "tested": False,
             "updated_at": "",
             "tested_at": "",
