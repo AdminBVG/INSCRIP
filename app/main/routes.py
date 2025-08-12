@@ -1,4 +1,7 @@
 import os
+import uuid
+import re
+from datetime import datetime
 from flask import Blueprint, render_template, request, redirect, url_for, flash, current_app
 from werkzeug.utils import secure_filename
 
@@ -7,8 +10,8 @@ from ..utils import (
     load_file_fields,
     load_text_fields,
     is_setup_complete,
-    save_submission,
     load_settings,
+    save_log_entry,
 )
 from services.onedrive import upload_files, normalize_path
 from services.mail import send_mail
@@ -58,6 +61,7 @@ def inscripcion(key):
         )
         form_values = {}
         nombre = ''
+        solicitante_email = ''
         for field in fields:
             value = request.form.get(field['name'], '').strip()
             if field.get('required') and not value:
@@ -66,12 +70,16 @@ def inscripcion(key):
             form_values[field['label']] = value
             if field['name'] == 'nombre':
                 nombre = value
+            if field['name'] == 'email':
+                solicitante_email = value
         if not nombre:
             flash('Debe incluir el campo nombre', 'error')
             return redirect(request.url)
 
         uploaded_files = []
         file_info = []
+        file_records = []
+        used_names = set()
         allowed_exts = [e.lower() for e in current_app.config['UPLOAD_EXTENSIONS']]
         for fcfg in files_cfg:
             f = request.files.get(fcfg['name'])
@@ -86,8 +94,37 @@ def inscripcion(key):
                     return redirect(request.url)
                 content = f.read()
                 size = len(content)
-                file_info.append({"name": filename, "size": size})
-                uploaded_files.append({"name": filename, "content": content})
+                pattern = cat.get('file_pattern', '')
+                final_name = filename
+                if pattern:
+                    now = datetime.utcnow()
+                    final_name = pattern
+                    final_name = final_name.replace('{categoria}', cat['key'])
+                    final_name = final_name.replace('{nombre}', nombre)
+                    final_name = final_name.replace('{label}', fcfg['label'])
+                    final_name = re.sub(
+                        r'{fecha(?::([^}]+))?}',
+                        lambda m: now.strftime(m.group(1) or '%Y%m%d'),
+                        final_name,
+                    )
+                    final_name = final_name.replace('{uuid}', uuid.uuid4().hex[:8])
+                    final_name = re.sub(r'[\\/:*?"<>|]', '_', final_name)
+                    max_len = 120
+                    if len(final_name) > max_len:
+                        final_name = final_name[:max_len]
+                    final_name = f"{final_name}{ext}"
+                    while final_name in used_names:
+                        final_name = f"{os.path.splitext(final_name)[0]}-{uuid.uuid4().hex[:4]}{ext}"
+                used_names.add(final_name)
+                file_info.append({"name": final_name, "size": size})
+                file_records.append(
+                    {
+                        "nombre_original": filename,
+                        "nombre_final": final_name,
+                        "size_bytes": size,
+                    }
+                )
+                uploaded_files.append({"name": final_name, "content": content})
 
         current_app.logger.info("Archivos listos para subir: %s", file_info)
         if not uploaded_files:
@@ -151,7 +188,7 @@ def inscripcion(key):
         test_mode = request.args.get('ab')
         current_app.logger.info("Modo A/B: %s", test_mode)
 
-        status = "Éxito"
+        status = "EXITO"
         error_detail = ""
         folder_url = ""
         if test_mode != 'B':
@@ -162,17 +199,22 @@ def inscripcion(key):
                 current_app.logger.info("Archivos subidos a: %s", folder_url)
             except GraphAPIError as e:
                 current_app.logger.exception("Error al subir archivos a OneDrive")
-                status = "Error"
+                status = "ERROR"
                 error_detail = f"Error subiendo archivo a OneDrive: {e}"
                 flash(f"Error subiendo archivo a OneDrive: {e}", 'error')
-                save_submission(
-                    key,
-                    form_values,
-                    file_info,
-                    folder_url,
-                    status,
-                    error_detail,
-                    request.remote_addr or "",
+                save_log_entry(
+                    categoria_key=key,
+                    categoria_nombre=cat['name'],
+                    solicitante_nombre=nombre,
+                    solicitante_email=solicitante_email,
+                    one_drive_path=dest_dir,
+                    one_drive_folder_url=folder_url,
+                    archivos=file_records,
+                    estado=status,
+                    detalle_error=error_detail,
+                    destinatarios_to=to_recipients,
+                    destinatarios_cc=cc_recipients,
+                    user_admin="",
                 )
                 return redirect(url_for('main.index'))
         else:
@@ -194,7 +236,7 @@ def inscripcion(key):
                 flash('Inscripción completada: correo enviado', 'success')
             except GraphAPIError as e:
                 current_app.logger.exception("Error enviando correo")
-                status = "Error"
+                status = "ERROR"
                 error_detail = f"Error enviando correo: {e}"
                 if test_mode == 'B':
                     flash(f"Error enviando correo: {e}", 'error')
@@ -204,15 +246,19 @@ def inscripcion(key):
                     )
         else:
             flash('Archivos subidos sin enviar correo (modo A)', 'info')
-
-        save_submission(
-            key,
-            form_values,
-            file_info,
-            folder_url,
-            status,
-            error_detail,
-            request.remote_addr or "",
+        save_log_entry(
+            categoria_key=key,
+            categoria_nombre=cat['name'],
+            solicitante_nombre=nombre,
+            solicitante_email=solicitante_email,
+            one_drive_path=dest_dir,
+            one_drive_folder_url=folder_url,
+            archivos=file_records,
+            estado=status,
+            detalle_error=error_detail,
+            destinatarios_to=to_recipients,
+            destinatarios_cc=cc_recipients,
+            user_admin="",
         )
 
         return redirect(url_for('main.index'))

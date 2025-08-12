@@ -31,6 +31,10 @@
     <input name="base_path" value="{{ category.base_path }}" class="border rounded w-full p-2">
   </div>
   <div>
+    <label class="block mb-1">Patrón de nombre de archivo</label>
+    <input name="file_pattern" value="{{ category.file_pattern or '' }}" class="border rounded w-full p-2">
+  </div>
+  <div>
     <label class="block mb-1">Correos de notificación (separados por comas)</label>
     <input name="notify_emails" value="{{ category.notify_emails }}" class="border rounded w-full p-2">
   </div>

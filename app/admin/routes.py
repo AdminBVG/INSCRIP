@@ -7,10 +7,11 @@ from flask import (
     url_for,
     flash,
     current_app,
+    Response,
 )
 
 from ..db import SessionLocal
-from ..models import Category
+from ..models import Category, LogEntry
 from ..utils import (
     load_menu,
     load_settings,
@@ -20,6 +21,7 @@ from ..utils import (
     load_file_fields,
     save_file_fields,
     load_submissions,
+    load_log_entries,
 )
 from services.mail import send_test_email
 from services.onedrive import upload_files, normalize_path
@@ -56,6 +58,7 @@ def menu():
         base_path = request.form.get('base_path', '').strip()
         notify_emails = request.form.get('notify_emails', '').strip()
         notify_cc_emails = request.form.get('notify_cc_emails', '').strip()
+        file_pattern = request.form.get('file_pattern', '').strip()
         active = bool(request.form.get('active'))
         with SessionLocal() as db:
             parent = db.query(Category).filter_by(id=parent_id).first() if parent_id else None
@@ -67,6 +70,7 @@ def menu():
                     base_path=base_path,
                     notify_emails=notify_emails,
                     notify_cc_emails=notify_cc_emails,
+                    file_pattern=file_pattern,
                     active=active,
                 )
             )
@@ -94,6 +98,7 @@ def edit_category(cat_id: int):
             category.base_path = request.form.get('base_path', '').strip()
             category.notify_emails = request.form.get('notify_emails', '').strip()
             category.notify_cc_emails = request.form.get('notify_cc_emails', '').strip()
+            category.file_pattern = request.form.get('file_pattern', '').strip()
             category.active = bool(request.form.get('active'))
             db.commit()
             flash('Categoría actualizada')
@@ -360,3 +365,64 @@ def submissions():
         submissions=data,
         selected_cat=cat,
     )
+
+
+@admin_bp.route('/logs')
+def logs_view():
+    menu = load_menu()
+    cat = request.args.get('category', '')
+    search = request.args.get('search', '')
+    status = request.args.get('status', '')
+    logs = load_log_entries(cat, search, status)
+    if request.args.get('export') == '1':
+        from io import StringIO
+        import csv
+
+        si = StringIO()
+        writer = csv.writer(si)
+        writer.writerow(
+            [
+                'Fecha',
+                'Categoría',
+                'Nombre',
+                'Email',
+                'Estado',
+                'Archivos',
+                'Carpeta',
+            ]
+        )
+        for e in logs:
+            writer.writerow(
+                [
+                    e['timestamp'],
+                    e['categoria_nombre'],
+                    e['solicitante_nombre'],
+                    e['solicitante_email'],
+                    e['estado'],
+                    len(e['archivos'] or []),
+                    e['one_drive_folder_url'],
+                ]
+            )
+        return Response(
+            si.getvalue(),
+            mimetype='text/csv',
+            headers={'Content-Disposition': 'attachment; filename=log_entries.csv'},
+        )
+    return render_template(
+        'admin_logs.html',
+        menu=menu,
+        logs=logs,
+        selected_cat=cat,
+        search=search,
+        selected_status=status,
+    )
+
+
+@admin_bp.route('/logs/<int:log_id>')
+def log_detail(log_id: int):
+    with SessionLocal() as db:
+        entry = db.query(LogEntry).filter_by(id=log_id).first()
+    if not entry:
+        flash('Registro no encontrado')
+        return redirect(url_for('admin.logs_view'))
+    return render_template('admin_log_detail.html', entry=entry)

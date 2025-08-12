@@ -1,5 +1,14 @@
 from datetime import datetime
-from sqlalchemy import Column, Integer, String, Boolean, ForeignKey, DateTime, JSON
+from sqlalchemy import (
+    Column,
+    Integer,
+    String,
+    Boolean,
+    ForeignKey,
+    DateTime,
+    JSON,
+    Text,
+)
 from sqlalchemy.orm import relationship
 from .db import Base
 
@@ -12,6 +21,7 @@ class Category(Base):
     base_path = Column(String, default='')
     notify_emails = Column(String, default='')
     notify_cc_emails = Column(String, default='')
+    file_pattern = Column(String, default='')
     active = Column(Boolean, default=True)
     parent_id = Column(Integer, ForeignKey('categories.id'))
     parent = relationship('Category', remote_side=[id], backref='children')
@@ -59,3 +69,21 @@ class Submission(Base):
     user = Column(String, default='')
     created_at = Column(DateTime, default=datetime.utcnow)
     category = relationship('Category')
+
+
+class LogEntry(Base):
+    __tablename__ = 'log_entries'
+    id = Column(Integer, primary_key=True)
+    timestamp = Column(DateTime, default=datetime.utcnow)
+    categoria_key = Column(String, nullable=False)
+    categoria_nombre = Column(String, nullable=False)
+    solicitante_nombre = Column(String, nullable=False)
+    solicitante_email = Column(String, default='')
+    one_drive_path = Column(String, default='')
+    one_drive_folder_url = Column(String, default='')
+    archivos = Column(JSON, nullable=False)
+    estado = Column(String, nullable=False)
+    detalle_error = Column(Text)
+    destinatarios_to = Column(JSON, default=list)
+    destinatarios_cc = Column(JSON, default=list)
+    user_admin = Column(String, default='')

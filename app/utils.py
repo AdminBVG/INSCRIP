@@ -1,6 +1,7 @@
 from datetime import datetime
 from .db import SessionLocal
-from .models import Category, FileField, TextField, Submission, Setting
+from .models import Category, FileField, TextField, Submission, Setting, LogEntry
+from sqlalchemy import or_
 
 
 def load_menu(include_inactive: bool = False):
@@ -26,6 +27,7 @@ def load_menu(include_inactive: bool = False):
                     'base_path': c.base_path,
                     'notify_emails': c.notify_emails,
                     'notify_cc_emails': c.notify_cc_emails,
+                    'file_pattern': c.file_pattern,
                     'active': c.active,
                 }
             )
@@ -145,6 +147,51 @@ def load_submissions(cat_key: str = '') -> list:
                     'error': s.error,
                     'user': s.user,
                     'created_at': s.created_at.isoformat() if s.created_at else '',
+                }
+            )
+        return result
+
+
+def save_log_entry(**data) -> None:
+    with SessionLocal() as db:
+        db.add(LogEntry(**data))
+        db.commit()
+
+
+def load_log_entries(cat_key: str = '', search: str = '', status: str = '') -> list:
+    with SessionLocal() as db:
+        query = db.query(LogEntry)
+        if cat_key:
+            query = query.filter_by(categoria_key=cat_key)
+        if status:
+            query = query.filter_by(estado=status)
+        if search:
+            like = f"%{search}%"
+            query = query.filter(
+                or_(
+                    LogEntry.solicitante_nombre.ilike(like),
+                    LogEntry.solicitante_email.ilike(like),
+                )
+            )
+        logs = query.order_by(LogEntry.timestamp.desc()).all()
+        result = []
+        for e in logs:
+            result.append(
+                {
+                    'id': e.id,
+                    'timestamp': e.timestamp.isoformat() if e.timestamp else '',
+                    'categoria_key': e.categoria_key,
+                    'categoria_nombre': e.categoria_nombre,
+                    'solicitante_nombre': e.solicitante_nombre,
+                    'solicitante_email': e.solicitante_email,
+                    'one_drive_path': e.one_drive_path,
+                    'one_drive_folder_url': e.one_drive_folder_url,
+                    'archivos': e.archivos,
+                    'estado': e.estado,
+                    'detalle_error': e.detalle_error,
+                    'destinatarios_to': e.destinatarios_to or [],
+                    'destinatarios_cc': e.destinatarios_cc or [],
+                    'user_admin': e.user_admin,
                 }
             )
         return result
