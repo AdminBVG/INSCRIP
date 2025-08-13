@@ -3,9 +3,9 @@ import smtplib
 from email.mime.text import MIMEText
 import base64
 import requests
-from flask import render_template
+from django.template.loader import render_to_string
 
-from app.utils import load_settings
+from inscripciones.utils import load_settings
 from .graph_auth import GraphAPIError, get_access_token
 
 logger = logging.getLogger(__name__)
@@ -150,12 +150,14 @@ def send_mail(
         "Authorization": f"Bearer {token}",
         "Content-Type": "application/json",
     }
-    body = render_template(
+    body = render_to_string(
         template,
-        nombre=nombre,
-        categoria=categoria,
-        fields=fields,
-        folder_link=folder_link,
+        {
+            'nombre': nombre,
+            'categoria': categoria,
+            'fields': fields,
+            'folder_link': folder_link,
+        },
     )
 
     msg = {

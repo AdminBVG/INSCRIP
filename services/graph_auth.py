@@ -1,6 +1,6 @@
 import logging
 import requests
-from app.utils import load_settings
+from inscripciones.utils import load_settings
 
 
 logger = logging.getLogger(__name__)

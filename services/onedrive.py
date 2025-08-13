@@ -2,7 +2,7 @@ import logging
 from pathlib import PurePosixPath
 
 import requests
-from werkzeug.utils import secure_filename
+from django.utils.text import get_valid_filename
 
 from .graph_auth import GraphAPIError, get_access_token
 
@@ -94,7 +94,7 @@ def upload_files(token, user_id, dest_path, files):
     folder_url = _get_folder_url(token, user_id, parent_id)
 
     for f in files:
-        filename = secure_filename(f['name'])
+        filename = get_valid_filename(f['name'])
         content = f['content']
         upload_url = (
             f"https://graph.microsoft.com/v1.0/users/{user_id}/drive/items/{parent_id}:/{filename}:/content"

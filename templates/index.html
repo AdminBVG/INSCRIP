@@ -5,7 +5,7 @@
 <p class="mb-4">Seleccione una categoría:</p>
 <div class="grid gap-4 md:grid-cols-2">
   {% for item in menu %}
-    <a href="{{ url_for('main.inscripcion', key=item.key) }}" class="block p-4 bg-white dark:bg-gray-800 rounded shadow hover:bg-gray-50 dark:hover:bg-gray-700">{{ item.name }}</a>
+    <a href="{% url 'inscripcion' item.key %}" class="block p-4 bg-white dark:bg-gray-800 rounded shadow hover:bg-gray-50 dark:hover:bg-gray-700">{{ item.name }}</a>
   {% endfor %}
 </div>
 {% endblock %}

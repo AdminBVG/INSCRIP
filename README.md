@@ -1,6 +1,6 @@
 # INSCRIP
 
-Sistema de inscripciones desarrollado con Flask. Permite definir categorías con campos dinámicos, almacenar archivos en OneDrive mediante Microsoft Graph y enviar notificaciones por correo.
+Sistema de inscripciones desarrollado con Django. Permite definir categorías con campos dinámicos, almacenar archivos en OneDrive mediante Microsoft Graph y enviar notificaciones por correo.
 
 ## Requisitos previos
 - Python 3.11+
@@ -28,8 +28,8 @@ pip install -r requirements.txt
 ## Variables de entorno
 | Variable | Descripción |
 |---------|-------------|
-| `DATABASE_URL` | Cadena de conexión de SQLAlchemy. Ej: `postgresql+psycopg2://usuario:pass@localhost/inscrip` |
-| `SECRET_KEY` | Clave secreta de Flask |
+| `DATABASE_URL` | Cadena de conexión para la base de datos (no obligatorio con SQLite) |
+| `SECRET_KEY` | Clave secreta de Django |
 | `CLIENT_ID` | ID de la aplicación en Azure AD |
 | `CLIENT_SECRET` | Secreto de cliente en Azure AD |
 | `TENANT_ID` | Tenant ID de Azure AD |
@@ -60,26 +60,25 @@ Cada categoría puede tener su propia plantilla de correo editable desde la inte
 
 ## Inicialización de la base de datos
 ```bash
-python -c "from app.db import init_db; init_db()"
+python manage.py migrate
 ```
-La aplicación también crea las tablas automáticamente al iniciar.
+La aplicación crea las tablas automáticamente al ejecutar las migraciones.
 
 ## Ejecución
 ### Desarrollo
 ```bash
-export FLASK_DEBUG=1  # opcional
-flask --app app.py run
+python manage.py runserver
 ```
 
 ### Producción
 Usar un servidor WSGI como Gunicorn:
 ```bash
-gunicorn -w 4 -b 0.0.0.0:8000 app:app
+gunicorn -w 4 -b 0.0.0.0:8000 inscrip_django.wsgi:application
 ```
 Configurar un proxy reverso (Nginx) y habilitar HTTPS.
 
 ## Troubleshooting
-- Revise los logs generados por Flask para identificar fallos de configuración, ruta de OneDrive o credenciales.
+- Revise los logs generados por Django para identificar fallos de configuración, ruta de OneDrive o credenciales.
 - Asegúrese de que cada categoría tenga destinatarios configurados y que los archivos cargados tengan extensiones permitidas.
 - Verifique que la ruta base de OneDrive sea relativa y no contenga `:` ni `\`.
 - Puede enviar el formulario con `?ab=A` para subir archivos sin enviar correo o `?ab=B` para enviar correo sin subir archivos.

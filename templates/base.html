@@ -12,33 +12,19 @@
   <nav class="bg-white dark:bg-gray-800 shadow mb-6">
     <div class="container mx-auto px-4 py-4 flex justify-between items-center">
       <div class="space-x-4">
-        <a href="{{ url_for('main.index') }}" class="font-semibold hover:underline">Inicio</a>
-        <a href="{{ url_for('admin.menu') }}" class="font-semibold hover:underline">Categorías</a>
-        <a href="{{ url_for('admin.files') }}" class="font-semibold hover:underline">Archivos</a>
-        <a href="{{ url_for('admin.fields') }}" class="font-semibold hover:underline">Campos</a>
-        <a href="{{ url_for('admin.submissions') }}" class="font-semibold hover:underline">Inscripciones</a>
-        <a href="{{ url_for('admin.logs_view') }}" class="font-semibold hover:underline">Bitácora</a>
-        <div class="relative inline-block group">
-          <span class="font-semibold hover:underline cursor-pointer">Test</span>
-          <div class="absolute hidden group-hover:block bg-white dark:bg-gray-700 shadow-md mt-2">
-            <a href="{{ url_for('admin.test_mail') }}" class="block px-4 py-2 hover:bg-gray-100 dark:hover:bg-gray-600">Probar envío de correo</a>
-            <a href="{{ url_for('admin.test_onedrive') }}" class="block px-4 py-2 hover:bg-gray-100 dark:hover:bg-gray-600">Probar guardado en OneDrive</a>
-          </div>
-        </div>
+        <a href="{% url 'index' %}" class="font-semibold hover:underline">Inicio</a>
       </div>
       <button id="toggleDark" class="px-2 py-1 border rounded">Modo</button>
     </div>
   </nav>
   <main class="container mx-auto px-4 flex-1">
-    {% with messages = get_flashed_messages() %}
-      {% if messages %}
-        <div class="mb-4 flashes">
-          {% for message in messages %}
-            <div class="bg-blue-100 text-blue-800 p-2 rounded mb-2 alert alert-info">{{ message }}</div>
-          {% endfor %}
-        </div>
-      {% endif %}
-    {% endwith %}
+    {% if messages %}
+      <div class="mb-4 flashes">
+        {% for message in messages %}
+          <div class="bg-blue-100 text-blue-800 p-2 rounded mb-2 alert alert-info">{{ message }}</div>
+        {% endfor %}
+      </div>
+    {% endif %}
     {% block content %}{% endblock %}
   </main>
   <footer class="bg-white dark:bg-gray-800 text-center py-4 mt-6">
