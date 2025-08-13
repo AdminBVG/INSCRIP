@@ -2,30 +2,30 @@
 {% block title %}Configuración{% endblock %}
 
 {% block content %}
-<h1 class="text-2xl font-bold mb-6 text-center">Configuración</h1>
-<form method="post" class="max-w-2xl mx-auto bg-white dark:bg-gray-800 p-6 rounded shadow space-y-6">
+<h1 class="text-2xl font-bold mb-6 text-center text-primary">Configuración</h1>
+<form hx-post="{% url 'settings' %}" hx-target="#messages" hx-swap="outerHTML" method="post" class="max-w-2xl mx-auto bg-white dark:bg-slate-800 p-8 rounded-xl shadow space-y-6">
   {% csrf_token %}
   <div class="space-y-4">
     <h2 class="text-xl font-semibold">Correo (SMTP)</h2>
     <div>
       <label class="block mb-1">Usuario</label>
       <input type="text" name="mail_user" value="{{ settings.mail.mail_user }}"
-             class="w-full border border-gray-300 dark:border-gray-700 rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500" />
+             class="w-full border border-gray-300 dark:border-gray-700 rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-primary" />
     </div>
     <div>
       <label class="block mb-1">Contraseña</label>
       <input type="password" name="mail_password" value="{{ settings.mail.mail_password }}"
-             class="w-full border border-gray-300 dark:border-gray-700 rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500" />
+             class="w-full border border-gray-300 dark:border-gray-700 rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-primary" />
     </div>
     <div>
       <label class="block mb-1">Servidor SMTP</label>
       <input type="text" name="smtp_host" value="{{ settings.mail.smtp_host }}"
-             class="w-full border border-gray-300 dark:border-gray-700 rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500" />
+             class="w-full border border-gray-300 dark:border-gray-700 rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-primary" />
     </div>
     <div>
       <label class="block mb-1">Puerto SMTP</label>
       <input type="number" name="smtp_port" value="{{ settings.mail.smtp_port }}"
-             class="w-full border border-gray-300 dark:border-gray-700 rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500" />
+             class="w-full border border-gray-300 dark:border-gray-700 rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-primary" />
     </div>
   </div>
   <div class="space-y-4">
@@ -33,26 +33,26 @@
     <div>
       <label class="block mb-1">Client ID</label>
       <input type="text" name="client_id" value="{{ settings.onedrive.client_id }}"
-             class="w-full border border-gray-300 dark:border-gray-700 rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500" />
+             class="w-full border border-gray-300 dark:border-gray-700 rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-primary" />
     </div>
     <div>
       <label class="block mb-1">Client Secret</label>
       <input type="text" name="client_secret" value="{{ settings.onedrive.client_secret }}"
-             class="w-full border border-gray-300 dark:border-gray-700 rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500" />
+             class="w-full border border-gray-300 dark:border-gray-700 rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-primary" />
     </div>
     <div>
       <label class="block mb-1">Tenant ID</label>
       <input type="text" name="tenant_id" value="{{ settings.onedrive.tenant_id }}"
-             class="w-full border border-gray-300 dark:border-gray-700 rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500" />
+             class="w-full border border-gray-300 dark:border-gray-700 rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-primary" />
     </div>
     <div>
       <label class="block mb-1">User ID</label>
       <input type="text" name="user_id" value="{{ settings.onedrive.user_id }}"
-             class="w-full border border-gray-300 dark:border-gray-700 rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500" />
+             class="w-full border border-gray-300 dark:border-gray-700 rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-primary" />
     </div>
   </div>
   <div class="text-right">
-    <button type="submit" class="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700">Guardar</button>
+    <button type="submit" class="px-4 py-2 bg-primary text-white rounded hover:bg-primary/90">Guardar</button>
   </div>
 </form>
 {% endblock %}

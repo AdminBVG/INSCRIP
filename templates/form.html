@@ -1,13 +1,13 @@
 {% extends 'base.html' %}
 {% block title %}Formulario de {{ cat.name }}{% endblock %}
 {% block content %}
-<h1 class="text-2xl font-bold mb-6 text-center">Formulario - {{ cat.name }}</h1>
-<form id="inscripcionForm" method="post" enctype="multipart/form-data" class="max-w-2xl mx-auto bg-white dark:bg-gray-800 p-6 rounded shadow space-y-6">
+<h1 class="text-2xl font-bold mb-6 text-center text-primary">Formulario - {{ cat.name }}</h1>
+<form id="inscripcionForm" method="post" enctype="multipart/form-data" class="max-w-2xl mx-auto bg-white dark:bg-slate-800 p-8 rounded-xl shadow space-y-6">
   {% for field in fields %}
     <div>
       <label class="block mb-1">{{ field.label }}{% if field.required %} *{% endif %}</label>
       <input type="{{ field.type }}" name="{{ field.name }}" {% if field.required %}required{% endif %}
-             class="w-full border border-gray-300 dark:border-gray-700 rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500">
+             class="w-full border border-gray-300 dark:border-gray-700 rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-primary">
     </div>
   {% endfor %}
 
@@ -18,18 +18,18 @@
         <p class="text-sm text-gray-600 dark:text-gray-400">{{ f.description }}</p>
       {% endif %}
       <input type="file" name="{{ f.name }}" {% if f.required %}required{% endif %}
-             class="w-full border border-gray-300 dark:border-gray-700 rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+             class="w-full border border-gray-300 dark:border-gray-700 rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-primary"
              accept="{{ upload_exts|join(',') }}">
     </div>
   {% endfor %}
 
   <div id="filePreview" class="text-sm text-gray-500 dark:text-gray-400"></div>
   <div class="w-full bg-gray-200 dark:bg-gray-700 rounded h-2">
-    <div id="progressBar" class="bg-blue-500 h-2 w-0"></div>
+    <div id="progressBar" class="bg-primary h-2 w-0"></div>
   </div>
 
   <div class="text-right">
-    <button type="submit" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded">Enviar</button>
+    <button type="submit" class="bg-primary hover:bg-primary/90 text-white px-4 py-2 rounded">Enviar</button>
   </div>
 </form>
 <script>
