@@ -1,42 +1,81 @@
 <!DOCTYPE html>
-<html lang="es">
+<html lang="es" x-data="{dark: localStorage.getItem('theme') === 'dark'}" x-bind:class="{'dark': dark}">
 <head>
   <meta charset="UTF-8">
-  <title>{% block title %}Inscripciones{% endblock %}</title>
+  <title>{% block title %}Inscripciones BVG{% endblock %}</title>
+
+  <!-- Tipografía Poppins -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
+
+  <!-- Tailwind CSS con configuración de colores BVG -->
   <script src="https://cdn.tailwindcss.com"></script>
   <script>
-    tailwind.config = { darkMode: 'class' }
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        fontFamily: { sans: ['Poppins', 'sans-serif'] },
+        extend: {
+          colors: {
+            primary: '#0052A5',
+            secondary: '#F3B742',
+          }
+        }
+      }
+    }
   </script>
+
+  <!-- HTMX & Alpine.js -->
+  <script src="https://unpkg.com/htmx.org@1.9.10" integrity="sha384-JS6D+W/eXMD9C1OYwpujbfnDcQI2cP1LQjtnOLYchMykJtavGXQu4SDD0E3R5N8E" crossorigin="anonymous"></script>
+  <script defer src="https://unpkg.com/alpinejs@3.x.x/dist/cdn.min.js"></script>
+
+  <style>
+    :root {
+      --color-primary: #0052A5;
+      --color-secondary: #F3B742;
+    }
+  </style>
 </head>
-<body class="bg-gray-100 dark:bg-gray-900 text-gray-900 dark:text-gray-100 min-h-screen flex flex-col">
-  <nav class="bg-white dark:bg-gray-800 shadow mb-6">
+<body class="min-h-screen flex flex-col bg-neutral-50 dark:bg-slate-900 text-neutral-900 dark:text-neutral-100">
+  <nav class="bg-white dark:bg-slate-800 shadow">
     <div class="container mx-auto px-4 py-4 flex justify-between items-center">
-      <a href="{% url 'index' %}" class="text-lg font-semibold">INSCRIP</a>
+      <a href="{% url 'index' %}" class="text-lg font-semibold text-primary">BVG</a>
       <div class="flex items-center space-x-4">
         <a href="{% url 'index' %}" class="hover:underline">Inicio</a>
         {% if request.user.is_staff %}
-          <a href="{% url 'settings' %}" class="hover:underline">Configuración</a>
+          <a hx-get="{% url 'settings' %}" hx-target="#main" hx-swap="innerHTML" class="hover:underline">Configuración</a>
         {% endif %}
-        <button id="toggleDark" class="px-2 py-1 border rounded" aria-label="Cambiar modo">Modo</button>
+        <button @click="dark = !dark" class="px-2 py-1 border rounded" aria-label="Cambiar modo">Modo</button>
       </div>
     </div>
   </nav>
-  <main class="container mx-auto px-4 flex-1">
+  <main id="main" class="container mx-auto px-4 py-6 flex-1">
+    <div id="toast" class="fixed top-4 right-4 space-y-2" x-cloak></div>
     {% if messages %}
-      <div class="mb-4 flashes">
+      <div class="mb-4" id="messages">
         {% for message in messages %}
-          <div class="bg-blue-100 text-blue-800 p-2 rounded mb-2 alert alert-info">{{ message }}</div>
+          <div class="bg-secondary/20 text-primary p-2 rounded shadow">{{ message }}</div>
         {% endfor %}
       </div>
     {% endif %}
     {% block content %}{% endblock %}
   </main>
-  <footer class="bg-white dark:bg-gray-800 text-center py-4 mt-6">
+  <footer class="bg-white dark:bg-slate-800 text-center py-4 mt-6">
     <p>&copy; {{ 2025 }} Bolsa de Valores Guayaquil</p>
   </footer>
   <script>
-    document.getElementById('toggleDark').addEventListener('click', function() {
-      document.documentElement.classList.toggle('dark');
+    document.addEventListener('alpine:init', () => {
+      Alpine.store('toast', {
+        show(message) {
+          const el = document.createElement('div');
+          el.className = 'bg-primary text-white px-4 py-2 rounded shadow';
+          el.textContent = message;
+          const container = document.getElementById('toast');
+          container.appendChild(el);
+          setTimeout(() => el.remove(), 3000);
+        }
+      })
     });
   </script>
 </body>
