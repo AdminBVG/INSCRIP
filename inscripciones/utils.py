@@ -91,15 +91,30 @@ def load_settings() -> Dict[str, Dict[str, Any]]:
 
 
 def is_setup_complete() -> bool:
+    """Verifica si el sistema cuenta con la configuración mínima necesaria.
+
+    Antes se requería que las configuraciones de correo y Microsoft Graph
+    estuvieran marcadas como "testeadas". Esto provocaba que, tras guardar
+    los valores en el panel de administración, el sitio quedara bloqueado
+    hasta ejecutar una prueba manual. Ahora solo se valida que existan los
+    datos básicos requeridos, permitiendo que el flujo de inscripción
+    continúe inmediatamente después de guardar la configuración.
+    """
+
     settings = load_settings()
     mail = settings.get('mail', {})
     drive = settings.get('onedrive', {})
     menu_ok = Category.objects.exists()
-    mail_ok = mail.get('tested')
-    drive_ok = drive.get('tested') and all(
+
+    # Correo configurado si usuario y contraseña están definidos
+    mail_ok = bool(mail.get('mail_user') and mail.get('mail_password'))
+
+    # Credenciales de Graph/OneDrive completas
+    drive_ok = all(
         drive.get(k) for k in ('client_id', 'client_secret', 'tenant_id', 'user_id')
     )
-    return mail_ok and drive_ok and menu_ok
+
+    return menu_ok and mail_ok and drive_ok
 
 
 def save_log_entry(**data) -> None:

@@ -163,12 +163,20 @@ def inscripcion(request, key):
         bcc_cfg = cat.get('notify_bcc_emails', '').strip()
 
         missing = []
-        if not mail_cfg.get('tested'):
+
+        # Validar configuración de correo (SMTP) mínima
+        if not (mail_cfg.get('mail_user') and mail_cfg.get('mail_password')):
             missing.append('correo')
-        if not all(drive_cfg.get(k) for k in ('client_id', 'client_secret', 'tenant_id', 'user_id')):
+
+        # Validar credenciales de OneDrive/Microsoft Graph
+        if not all(
+            drive_cfg.get(k) for k in ('client_id', 'client_secret', 'tenant_id', 'user_id')
+        ):
             missing.append('credenciales de OneDrive')
+
         if not recipients_cfg and not cc_cfg and not bcc_cfg:
             missing.append('destinatarios')
+
         if missing:
             msg = ", ".join(missing)
             logger.error("Configuración incompleta: falta %s", msg)
