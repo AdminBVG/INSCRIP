@@ -7,6 +7,9 @@ from django.shortcuts import render, redirect
 from django.contrib import messages
 from django.urls import reverse
 from django.conf import settings
+from django.contrib.admin.views.decorators import staff_member_required
+
+from .models import Setting
 
 from .utils import (
     load_menu,
@@ -281,3 +284,35 @@ def inscripcion(request, key):
             'upload_exts': getattr(settings, 'UPLOAD_EXTENSIONS', []),
         },
     )
+
+
+@staff_member_required
+def settings_view(request):
+    cfg = load_settings()
+    if request.method == 'POST':
+        mail = cfg.get('mail', {})
+        mail.update(
+            {
+                'mail_user': request.POST.get('mail_user', '').strip(),
+                'mail_password': request.POST.get('mail_password', '').strip(),
+                'smtp_host': request.POST.get('smtp_host', '').strip(),
+                'smtp_port': int(request.POST.get('smtp_port') or 0),
+            }
+        )
+        Setting.objects.update_or_create(section='mail', defaults={'data': mail})
+
+        drive = cfg.get('onedrive', {})
+        drive.update(
+            {
+                'client_id': request.POST.get('client_id', '').strip(),
+                'client_secret': request.POST.get('client_secret', '').strip(),
+                'tenant_id': request.POST.get('tenant_id', '').strip(),
+                'user_id': request.POST.get('user_id', '').strip(),
+            }
+        )
+        Setting.objects.update_or_create(section='onedrive', defaults={'data': drive})
+
+        messages.success(request, 'Configuración actualizada')
+        return redirect('/admin/settings')
+
+    return render(request, 'settings.html', {'settings': cfg})
