@@ -1,7 +1,7 @@
 {% extends 'base.html' %}
-{% block title %}Formulario de {{ category_name }}{% endblock %}
+{% block title %}Formulario de {{ cat.name }}{% endblock %}
 {% block content %}
-<h1 class="text-2xl font-bold mb-4">Formulario - {{ category_name }}</h1>
+<h1 class="text-2xl font-bold mb-4">Formulario - {{ cat.name }}</h1>
 <form id="inscripcionForm" method="post" enctype="multipart/form-data" class="space-y-4">
   {% for field in fields %}
     <div>
@@ -10,13 +10,13 @@
     </div>
   {% endfor %}
 
-  {% for f in files %}
+  {% for f in files_cfg %}
     <div>
       <label class="block mb-1">{{ f.label }}{% if f.required %} *{% endif %}</label>
       {% if f.description %}
         <p class="text-sm text-gray-600">{{ f.description }}</p>
       {% endif %}
-      <input type="file" name="{{ f.name }}" {% if f.required %}required{% endif %} class="w-full border rounded" accept="{{ config['UPLOAD_EXTENSIONS']|join(',') }}">
+      <input type="file" name="{{ f.name }}" {% if f.required %}required{% endif %} class="w-full border rounded" accept="{{ upload_exts|join(',') }}">
     </div>
   {% endfor %}
 
@@ -56,7 +56,7 @@ form.addEventListener('submit', function(e) {
   });
   xhr.onload = () => {
     if (xhr.status === 200) {
-      window.location = '{{ url_for("main.index") }}';
+      window.location = '{% url "index" %}';
     } else {
       alert('Error al enviar');
     }
