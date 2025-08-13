@@ -1,0 +1,48 @@
+{% extends 'base.html' %}
+{% block title %}Configuración{% endblock %}
+
+{% block content %}
+<h1 class="text-2xl mb-4">Configuración</h1>
+<form method="post" class="space-y-6">
+  {% csrf_token %}
+  <div>
+    <h2 class="text-xl font-semibold mb-2">Correo</h2>
+    <div class="mb-2">
+      <label class="block">Usuario</label>
+      <input type="text" name="mail_user" value="{{ settings.mail.mail_user }}" class="border p-2 w-full" />
+    </div>
+    <div class="mb-2">
+      <label class="block">Contraseña</label>
+      <input type="password" name="mail_password" value="{{ settings.mail.mail_password }}" class="border p-2 w-full" />
+    </div>
+    <div class="mb-2">
+      <label class="block">Servidor SMTP</label>
+      <input type="text" name="smtp_host" value="{{ settings.mail.smtp_host }}" class="border p-2 w-full" />
+    </div>
+    <div class="mb-2">
+      <label class="block">Puerto SMTP</label>
+      <input type="number" name="smtp_port" value="{{ settings.mail.smtp_port }}" class="border p-2 w-full" />
+    </div>
+  </div>
+  <div>
+    <h2 class="text-xl font-semibold mb-2">OneDrive</h2>
+    <div class="mb-2">
+      <label class="block">Client ID</label>
+      <input type="text" name="client_id" value="{{ settings.onedrive.client_id }}" class="border p-2 w-full" />
+    </div>
+    <div class="mb-2">
+      <label class="block">Client Secret</label>
+      <input type="text" name="client_secret" value="{{ settings.onedrive.client_secret }}" class="border p-2 w-full" />
+    </div>
+    <div class="mb-2">
+      <label class="block">Tenant ID</label>
+      <input type="text" name="tenant_id" value="{{ settings.onedrive.tenant_id }}" class="border p-2 w-full" />
+    </div>
+    <div class="mb-2">
+      <label class="block">User ID</label>
+      <input type="text" name="user_id" value="{{ settings.onedrive.user_id }}" class="border p-2 w-full" />
+    </div>
+  </div>
+  <button type="submit" class="px-4 py-2 bg-blue-500 text-white rounded">Guardar</button>
+</form>
+{% endblock %}
