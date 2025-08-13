@@ -1,11 +1,14 @@
 {% extends 'base.html' %}
 {% block title %}{{ title }}{% endblock %}
 {% block content %}
-<h1 class="text-2xl font-bold mb-4">{{ title }}</h1>
-<p class="mb-4">Seleccione una categoría:</p>
-<div class="grid gap-4 md:grid-cols-2">
+<h1 class="text-2xl font-bold mb-6 text-center">{{ title }}</h1>
+<p class="mb-6 text-center">Seleccione una categoría:</p>
+<div class="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
   {% for item in menu %}
-    <a href="{% url 'inscripcion' item.key %}" class="block p-4 bg-white dark:bg-gray-800 rounded shadow hover:bg-gray-50 dark:hover:bg-gray-700">{{ item.name }}</a>
+    <a href="{% url 'inscripcion' item.key %}"
+       class="block p-6 text-center bg-white dark:bg-gray-800 rounded shadow hover:shadow-md transition">
+       {{ item.name }}
+    </a>
   {% endfor %}
 </div>
 {% endblock %}

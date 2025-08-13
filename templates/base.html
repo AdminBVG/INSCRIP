@@ -11,10 +11,14 @@
 <body class="bg-gray-100 dark:bg-gray-900 text-gray-900 dark:text-gray-100 min-h-screen flex flex-col">
   <nav class="bg-white dark:bg-gray-800 shadow mb-6">
     <div class="container mx-auto px-4 py-4 flex justify-between items-center">
-      <div class="space-x-4">
-        <a href="{% url 'index' %}" class="font-semibold hover:underline">Inicio</a>
+      <a href="{% url 'index' %}" class="text-lg font-semibold">INSCRIP</a>
+      <div class="flex items-center space-x-4">
+        <a href="{% url 'index' %}" class="hover:underline">Inicio</a>
+        {% if request.user.is_staff %}
+          <a href="{% url 'settings' %}" class="hover:underline">Configuración</a>
+        {% endif %}
+        <button id="toggleDark" class="px-2 py-1 border rounded" aria-label="Cambiar modo">Modo</button>
       </div>
-      <button id="toggleDark" class="px-2 py-1 border rounded">Modo</button>
     </div>
   </nav>
   <main class="container mx-auto px-4 flex-1">
